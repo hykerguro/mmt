@@ -23,6 +23,17 @@ tz = pytz.timezone('Asia/Shanghai')
 
 
 def illust2setudb(illust, phase: str, original_urls, meta) -> tuple[Setu, bool]:
+    url = None
+    if "urls" in illust:
+        if "1200x1200" in illust["urls"]:
+            url = illust["urls"]["1200x1200"]  # from top_illust page
+        elif "regular" in illust["urls"]:
+            url = illust["urls"]["regular"]  # from illust page
+
+    if url is None:
+        illust = papi.illust(illust["id"])
+        return illust2setudb(illust, phase, original_urls, meta)
+
     return Setu.get_or_create(
         source="pixiv",
         phase=phase,
