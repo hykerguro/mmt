@@ -1,0 +1,4 @@
+loguru
+requests
+-e ./confctl
+flask
