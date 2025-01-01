@@ -7,11 +7,11 @@ util.init_config(args)
 util.init_loguru_loggers("random_setu/logs")
 
 if "pixiv_scraper" == args.module:
-    from pixiv_scraper import main
+    from .pixiv_scraper import main
 
     main()
 elif "random_setu" == args.module:
-    from random_setu import main
+    from .random_setu import main
 
     main()
 else:

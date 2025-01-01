@@ -22,7 +22,7 @@ SETU_KEYWORDS: list[str] | None = None
 def get_random_recommend(userId: str):
     recent_setus = Setu.select().order_by(Setu.income_time.desc()).limit(100)
     viewed = ViewHistory.select(ViewHistory.setuId).where(ViewHistory.userId == userId)
-    setu = recent_setus.where(Setu.id.not_in(viewed)).order_by(fn.Rand()).limit(1).get()
+    setu = recent_setus.where(Setu.id.not_in(viewed)).order_by(fn.Rand()).limit(1).first()
     return setu
 
 
@@ -34,6 +34,10 @@ def handle_message(message: litter.Message):
         logger.info(f"收到来自{userId}的消息：{msg['message']}")
 
         setu = get_random_recommend(userId)
+        if setu is None:
+            send_message(userId, f"涩图被派蒙吃光了")
+            return
+
         logger.debug(f"发送setu: {setu}")
         url = setu.preview_url
         page = setu.page if setu.page else f"https://www.pixiv.net/artworks/{setu.id}"
@@ -50,7 +54,7 @@ def handle_message(message: litter.Message):
             send_file(userId, url, caption='\n'.join(lines))
         except (LitterRequestTimeoutException, TgApiException) as e:
             logger.error(e)
-            send_message(userId, f"涩图被派蒙吃了")
+            send_message(userId, f"涩图被派蒙没收了")
         else:
             ViewHistory.create(
                 userId=userId,
