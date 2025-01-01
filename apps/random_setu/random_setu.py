@@ -46,7 +46,7 @@ def handle_message(message: litter.Message):
             f'artist: [{setu.artist_name}]({setu.artist_url})',
             "tags: " + ", ".join(('#' + x for x in setu.tags_data)),
         ]
-        if setu.ai_type == 2:
+        if setu.ai_type == '2':
             lines.append(f"#AI生成")
 
         # 点击Button发送原图
