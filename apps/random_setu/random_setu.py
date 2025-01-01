@@ -64,7 +64,7 @@ def handle_message(message: litter.Message):
 
 def main():
     global papi, SETU_KEYWORDS
-    SETU_KEYWORDS = config.get("setu/keywords")
+    SETU_KEYWORDS = config.get("random_setu/keywords")
 
     initialize_database(config.get("db_url"))
     papi = PixivWebAPI(config.get("pixiv_webapi/token"))
