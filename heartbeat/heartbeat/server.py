@@ -95,19 +95,24 @@ def do_revived(service: str, record: dict[str, Any]):
         _EXEPOOL.submit(alert.revived, service, record)
 
 
-def period_check(interval: float, tolerance: int):
+def period_check(interval: float, tolerance: int, eliminate: int):
     global NOTE
     while True:
+        pops = []
         for service, record in NOTE.items():
             record['cnt'] += 1
             logger.trace(f"Check {service}: {record=}")
             if (severe := record['cnt'] - tolerance) >= 0:
-                
                 do_alert(service, severe, record)
+                if severe > eliminate:
+                    pops.append(service)
+        for service in pops:
+            logger.info(f"服务{service}下线过久，排除心跳监测")
+            NOTE.pop(service)
         time.sleep(interval)
 
 
-def main(host, port, channel, interval, tolerance):
+def main(host, port, channel, interval, tolerance, eliminate):
     global NOTE
 
     @litter.subscribe(channel)
@@ -122,7 +127,7 @@ def main(host, port, channel, interval, tolerance):
     litter.listen_bg(host, port)
     logger.info(f"Heartbeat service started at redis://{host}:{port}/{channel}, {interval=}, {tolerance=} "
                 f"with {len(ALERTS)} alerts:" + ", ".join(map(str, ALERTS)))
-    period_check(interval, tolerance)
+    period_check(interval, tolerance, eliminate)
 
 
 if __name__ == '__main__':
@@ -141,5 +146,6 @@ if __name__ == '__main__':
         config.get("redis/port"),
         config.get("heartbeat/channel", "heartbeat.beat"),
         config.get("heartbeat/interval", 10.),
-        config.get("heartbeat/tolerance", 3)
+        config.get("heartbeat/tolerance", 3),
+        config.get("heartbeat/eliminate", 24 * 60 * 6),  # 下线1天
     )
