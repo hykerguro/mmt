@@ -187,7 +187,7 @@ def handler_callback(message: Message):
                 else:
                     resp = _build_response(message, ret, headers=None)
                 _do_response(resp, message.headers["litter-request-timeout"])
-            else:
+            elif ret is not None:
                 logger.warning(f"Unhandled response: {ret}")
 
     return _handler
