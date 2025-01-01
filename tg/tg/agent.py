@@ -24,6 +24,9 @@ class CoroTimeoutException(Exception):
 
 
 def get_client():
+    global client
+    if client is None:
+        _init_client(config.get("tg/auth"))
     return client
 
 

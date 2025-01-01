@@ -120,5 +120,17 @@ class Response:
     def response_queue(self):
         return self.headers["litter-response-queue"]
 
+    @property
+    def success(self):
+        return "litter-exception-type" not in self.headers
+
+    @property
+    def exception_type(self):
+        return self.headers.get("litter-exception-type", None)
+
+    @property
+    def exception_message(self):
+        return self.headers.get("litter-exception-message", None)
+
     def __str__(self):
         return str(dict(headers=self.headers, body=self.body))

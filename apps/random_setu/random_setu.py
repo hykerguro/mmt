@@ -5,8 +5,9 @@ from peewee import fn
 import litter
 from confctl import config, util
 from heartbeat.agent import beat_bg
+from litter.model import LitterRequestTimeoutException
 from pixiv_webapi import PixivWebAPI
-from tg import send_file
+from tg import send_file, TgApiException, send_message
 
 try:
     from .model import Setu, ViewHistory, initialize_database
@@ -45,11 +46,16 @@ def handle_message(message: litter.Message):
             lines.append(f"#AI生成")
 
         # 点击Button发送原图
-        send_file(userId, url, caption='\n'.join(lines))
-        ViewHistory.create(
-            userId=userId,
-            setuId=setu.id,
-        )
+        try:
+            send_file(userId, url, caption='\n'.join(lines))
+        except (LitterRequestTimeoutException, TgApiException) as e:
+            logger.error(e)
+            send_message(userId, f"涩图被派蒙吃了")
+        else:
+            ViewHistory.create(
+                userId=userId,
+                setuId=setu.id,
+            )
 
 
 def main():

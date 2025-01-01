@@ -1,0 +1,2 @@
+class TgApiException(Exception):
+    pass

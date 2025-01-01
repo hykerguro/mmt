@@ -145,6 +145,7 @@ def _build_response(req_message: Message, body, *, headers: dict[str, str] | Non
     response_queue = f'{_RESPONSE_QUEUE_PREFIX}{req_message.channel}:{req_message.headers["litter-request-id"]}'
     if headers is None:
         headers = {}
+    headers["litter-publish-channel"] = req_message.channel
     headers["litter-request-id"] = req_message.headers["litter-request-id"]
     headers["litter-name"] = get_appname()
     headers["litter-response-queue"] = response_queue
@@ -156,13 +157,26 @@ def _build_response(req_message: Message, body, *, headers: dict[str, str] | Non
     return Response.from_redis_response(resp)
 
 
+def _do_response(resp: Response, timout):
+    _redis_client.lpush(resp.response_queue, resp.serialize())
+    _redis_client.expire(resp.response_queue, int(timout))
+    publish(f"{resp.headers['litter-publish-channel']}:response", {"headers": resp.headers, "body": resp.body})
+
+
 def handler_callback(message: Message):
     def _handler(f: Future):
         try:
             ret = f.result()
-        except:
+        except Exception as e:
             logger.error(f"Exception while handling message {message}:")
             traceback.print_exc()
+            if "litter-request-id" in message.headers:
+                headers = {
+                    "litter-exception-type": str(type(e)),
+                    "litter-exception-message": str(e)
+                }
+                resp = _build_response(message, None, headers=headers)
+                _do_response(resp, message.headers["litter-request-timeout"])
         else:
             if "litter-request-id" in message.headers:
                 # is litter-request, litter-response is required
@@ -172,9 +186,7 @@ def handler_callback(message: Message):
                     resp = _build_response(message, ret.body, headers=ret.headers)
                 else:
                     resp = _build_response(message, ret, headers=None)
-                _redis_client.lpush(resp.response_queue, resp.serialize())
-                _redis_client.expire(resp.response_queue, message.headers["litter-request-timeout"])
-                publish(f"{message.channel}:response", {"headers": resp.headers, "body": resp.body})
+                _do_response(resp, message.headers["litter-request-timeout"])
             else:
                 logger.warning(f"Unhandled response: {ret}")
 
