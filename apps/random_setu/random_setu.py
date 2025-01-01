@@ -3,11 +3,12 @@ from loguru import logger
 from peewee import fn
 
 import litter
+# from tg import send_file, TgApiException, send_message
+import tg
 from confctl import config, util
 from heartbeat.agent import beat_bg
 from litter.model import LitterRequestTimeoutException
 from pixiv_webapi import PixivWebAPI
-from tg import send_file, TgApiException, send_message
 
 try:
     from .model import Setu, ViewHistory, initialize_database
@@ -33,9 +34,12 @@ def handle_message(message: litter.Message):
         userId = msg["peer_id"]["user_id"]
         logger.info(f"收到来自{userId}的消息：{msg['message']}")
 
+        prev_msg = tg.send_message(userId, "小派蒙正在搜索涩图 ...")
+
         setu = get_random_recommend(userId)
         if setu is None:
-            send_message(userId, f"涩图被派蒙吃光了")
+            tg.send_message(userId, f"涩图被派蒙吃光了")
+            tg.delete_message(userId, prev_msg["id"])
             return
 
         logger.debug(f"发送setu: {setu}")
@@ -46,20 +50,22 @@ def handle_message(message: litter.Message):
             f'artist: [{setu.artist_name}]({setu.artist_url})',
             "tags: " + ", ".join(('#' + x for x in setu.tags_data)),
         ]
-        if setu.ai_type == 2:
+        if setu.ai_type == '2':
             lines.append(f"#AI生成")
 
         # 点击Button发送原图
         try:
-            send_file(userId, url, caption='\n'.join(lines))
-        except (LitterRequestTimeoutException, TgApiException) as e:
+            tg.send_file(userId, url, caption='\n'.join(lines))
+        except (LitterRequestTimeoutException, tg.TgApiException) as e:
             logger.error(e)
-            send_message(userId, f"涩图被派蒙没收了")
+            tg.send_message(userId, f"涩图被派蒙没收了")
         else:
             ViewHistory.create(
                 userId=userId,
                 setuId=setu.id,
             )
+        finally:
+            tg.delete_message(userId, prev_msg["id"])
 
 
 def main():

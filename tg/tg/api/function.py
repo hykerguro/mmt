@@ -20,6 +20,10 @@ def send_file(entity, file: str | bytes | list[str | bytes], **kwargs) -> dict[s
     return _extract(litter.request("tg.send_file", {"entity": entity, "file": file, **kwargs}))
 
 
+def delete_message(entity, message_ids: int | list[int], ) -> dict[str, Any]:
+    return _extract(litter.request("tg.delete_message", {"entity": entity, "message_ids": message_ids}))
+
+
 def get_handler(condition, callback):
     def _hander(message: litter.Message):
         message = message.json()

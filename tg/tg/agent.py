@@ -1,8 +1,10 @@
 import asyncio
 import time
+from typing import Sequence
 
 import telethon.tl.patched
 from loguru import logger
+from sqlalchemy.cyextension.util import Mapping
 from telethon import TelegramClient, events
 from telethon.tl.types import User
 
@@ -67,6 +69,15 @@ async def _my_message_handler(event: events.NewMessage.Event):
     await get_client().send_message(message.peer_id, "1", reply_to=message)
 
 
+def _tlobjec2dict(obj):
+    if isinstance(obj, Sequence):
+        return [_tlobjec2dict(x) for x in obj]
+    elif isinstance(obj, Mapping):
+        return {k: _tlobjec2dict(v) for k, v in obj.items()}
+    elif isinstance(obj, telethon.tl.TLObject):
+        return obj.to_dict()
+
+
 def sleep_util_complete(coro, *, timeout=5, eps=0.05):
     f = asyncio.run_coroutine_threadsafe(coro, _get_loop())
     t = 0
@@ -75,7 +86,7 @@ def sleep_util_complete(coro, *, timeout=5, eps=0.05):
         t += eps
 
     if t < timeout:
-        return f.result().to_dict()
+        return _tlobjec2dict(f.result())
     else:
         raise CoroTimeoutException()
 
@@ -88,6 +99,11 @@ def ltcmd_send_message(message: litter.Message):
 @litter.subscribe("tg.send_file")
 def ltcmd_send_file(message: litter.Message):
     return sleep_util_complete(get_client().send_file(**message.json()))
+
+
+@litter.subscribe("tg.delete_message")
+def ltcmd_delete_message(message: litter.Message):
+    return sleep_util_complete(get_client().delete_messages(**message.json()))
 
 
 if __name__ == '__main__':
