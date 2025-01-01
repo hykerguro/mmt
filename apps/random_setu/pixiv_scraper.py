@@ -30,7 +30,7 @@ def illust2setudb(illust, phase: str, original_urls, meta) -> tuple[Setu, bool]:
         page=f"https://www.pixiv.net/artworks/{illust['id']}",
         title=illust["title"],
         page_count=illust["pageCount"],
-        preview_url=illust["url"],
+        preview_url=illust["urls"]["1200x1200"],
         original_url=json.dumps(original_urls, ensure_ascii=False),
         artist_name=illust["userName"],
         artist_url=f"https://www.pixiv.net/users/{illust['userId']}",
