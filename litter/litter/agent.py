@@ -39,14 +39,15 @@ def get_appname() -> str:
 
 def set_appname(app_name: str) -> None:
     global _app_name
-    _app_name = app_name
+    if app_name != _app_name:
+        _app_name = app_name
+        logger.info(f"AppName changed to {_app_name}")
 
 
 def connect(host: str, port: int | str, app_name: str | None = None):
     global _redis_client
     if app_name is not None:
         set_appname(app_name)
-        logger.info(f"App Name changed to {get_appname()}")
 
     port = int(port)
     if _redis_client is None:
@@ -198,14 +199,10 @@ def listen(host: str | None = None, port: int | str | None = None, app_name: str
     global _litter_thread, _sub_entity, _executor
 
     if host is not None and port is not None:
-        connect(host, int(port))
+        connect(host, int(port), app_name=app_name)
 
     if _redis_client is None:
         raise RuntimeError("Redis is not connected, you must connect first by calling 'connect(host, port)'")
-
-    if app_name is not None:
-        set_appname(app_name)
-        logger.info(f"App Name changed to {get_appname()}")
 
     if _executor is None:
         _executor = ThreadPoolExecutor(executor_workers, thread_name_prefix=get_appname())
