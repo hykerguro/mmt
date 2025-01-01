@@ -1,5 +1,4 @@
 import json
-import random
 from datetime import datetime
 
 import pytz
@@ -66,9 +65,10 @@ def on_archive_fav(message: litter.Message):
 def on_recommend():
     for mode in ("all", "r18"):
         logger.info(f"定时推荐: {mode}")
-        illusts = papi.top_illust(mode)["thumbnails"]["illust"]
-        random.shuffle(illusts)
-        illusts = illusts[:50]
+        data = papi.top_illust(mode)
+        recommend_ids = data["page"]["recommend"]["ids"]
+        infomap = {i["id"]: i for i in data["thumbnails"]["illust"]}
+        illusts = [infomap[iid] for iid in recommend_ids if iid in infomap]
         phase = "pixiv:recommend_" + mode
 
         for illust in illusts:
@@ -108,7 +108,8 @@ def main():
 
     sc = BlockingScheduler()
     if config.get("pixiv_scraper/recommend_cron", None):
-        sc.add_job(on_recommend, CronTrigger.from_crontab(config.get("pixiv_scraper/recommend_cron")))
+        sc.add_job(on_recommend, CronTrigger.from_crontab(config.get("pixiv_scraper/recommend_cron")),
+                   next_run_time=datetime.now())
         logger.info("定时推荐")
     sc.start()
 
