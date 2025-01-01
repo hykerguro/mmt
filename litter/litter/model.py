@@ -37,6 +37,8 @@ class LitterJsonEncoder(json.JSONEncoder):
             return self.BASE64_PREFIX + base64.b64encode(o).decode()
         elif isinstance(o, PurePath):
             return str(o)
+        elif isinstance(o, Exception):
+            return f'{type(o)}: {o}'
         return super().default(o)
 
 

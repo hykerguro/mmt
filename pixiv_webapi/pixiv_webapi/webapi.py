@@ -1,5 +1,5 @@
 from pathlib import Path
-from time import sleep
+from time import sleep, time
 from typing import TypeAlias, Any, Literal
 
 import requests
@@ -29,7 +29,7 @@ class PixivWebAPIException(Exception):
 
 
 class PixivWebAPI:
-    def __init__(self, php_session_id: str, lang: str = "zh", proxies=None):
+    def __init__(self, php_session_id: str, lang: str = "zh", proxies=None, *, min_interval: float=0.5):
         self.lang = lang
         self.base_url = "https://www.pixiv.net/ajax"
         self.session = requests.Session()
@@ -41,8 +41,17 @@ class PixivWebAPI:
         })
         if proxies and isinstance(proxies, dict):
             self.session.proxies.update(proxies)
+        self.min_interval = min_interval
+        self._last_request_time = 0.
 
     def _request(self, method: str, endpoint: str, params: dict = None, data: dict = None, **kwargs) -> Json | None:
+        if (itv := time() - self._last_request_time) < self.min_interval:
+            s = self.min_interval - itv
+            logger.debug(f"请求过于频繁，等待{s:.2f}秒")
+            sleep(s)
+        
+        self._last_request_time = time()
+        
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
 
         if params is None:
