@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 import telethon.tl.patched
 from loguru import logger
@@ -6,12 +7,9 @@ from telethon import TelegramClient, events
 from telethon.tl.types import User
 
 import litter
-from confctl import config
 from heartbeat.agent import beat_bg
 
-_lp = litter.publish
 __all__ = [
-    "send_message",
     "get_me",
     "get_client"
 ]
@@ -21,18 +19,12 @@ loop: asyncio.AbstractEventLoop | None = None
 me: User | None = None
 
 
+class CoroTimeoutException(Exception):
+    pass
+
+
 def get_client():
-    global client
-    if client is None:
-        _init_client(config.get("tg"))
     return client
-
-
-def _get_loop():
-    global loop
-    if loop is None:
-        loop = get_client().loop
-    return loop
 
 
 def get_me(force: bool = False) -> User:
@@ -40,6 +32,13 @@ def get_me(force: bool = False) -> User:
     if force or me is None:
         me = _get_loop().run_until_complete(client.get_me())
     return me
+
+
+def _get_loop():
+    global loop
+    if loop is None:
+        loop = get_client().loop
+    return loop
 
 
 def _init_client(tg_conf: dict[str, int | str]) -> TelegramClient:
@@ -50,43 +49,6 @@ def _init_client(tg_conf: dict[str, int | str]) -> TelegramClient:
     loop = client.loop
     get_me(force=True)
     return client
-
-
-async def send_message(*args, **kwargs):
-    try:
-        logger.info(f"发送Telegram消息：{args=}, {kwargs=}")
-        result = await client.send_message(*args, **kwargs)
-    except Exception as e:
-        logger.error(f"发送Telegram消息失败：{e}")
-        _lp("tg.send_message.fail", {"args": args, **kwargs, "exception": e})
-        raise e
-    else:
-        _lp("tg.send_message.done", {"args": args, **kwargs, "result": result})
-
-
-async def send_file(entity, file, *args, **kwargs):
-    # if isinstance(file, list) and all(isinstance(e, str) for e in file):
-    #     logger.info(f"all str file: {file}")
-    #     fhs = []
-    #     for url in file:
-    #         r = await client.upload_file(url)
-    #         fhs.append(r)
-    #         logger.info(f"{url} uploaded")
-    #
-    #     logger.info(f"{len(file)} files uploaded: {fhs}")
-    #     message = await client.send_file(entity, fhs, *args, **kwargs)
-    #     logger.info(f"album sent: {message.to_dict()}")
-    #     return
-
-    try:
-        logger.info(f"发送Telegram消息：{entity=}, {file=}, {args=}, {kwargs=}")
-        result = await client.send_file(entity, file, *args, **kwargs)
-    except Exception as e:
-        logger.error(f"发送Telegram消息失败：{e}")
-        _lp("tg.send_message.fail", {"args": args, **kwargs, "exception": e})
-        raise e
-    else:
-        _lp("tg.send_message.done", {"args": args, **kwargs, "result": result})
 
 
 @logger.catch
@@ -102,33 +64,42 @@ async def _my_message_handler(event: events.NewMessage.Event):
     await get_client().send_message(message.peer_id, "1", reply_to=message)
 
 
+def sleep_util_complete(coro, *, timeout=5, eps=0.05):
+    f = asyncio.run_coroutine_threadsafe(coro, _get_loop())
+    t = 0
+    while not f.done() and t < timeout:
+        time.sleep(eps)
+        t += eps
+
+    if t < timeout:
+        return f.result().to_dict()
+    else:
+        raise CoroTimeoutException()
+
+
 @litter.subscribe("tg.send_message")
-def _ltcmd_send_message(message: litter.Message):
-    asyncio.run_coroutine_threadsafe(send_message(**message.json()), _get_loop())
+def ltcmd_send_message(message: litter.Message):
+    return sleep_util_complete(get_client().send_message(**message.json()))
 
 
 @litter.subscribe("tg.send_file")
-def _ltcmd_send_file(message: litter.Message):
-    asyncio.run_coroutine_threadsafe(send_file(**message.json()), _get_loop())
+def ltcmd_send_file(message: litter.Message):
+    return sleep_util_complete(get_client().send_file(**message.json()))
 
 
 if __name__ == '__main__':
     # 配置
-    from argparse import ArgumentParser
+    from confctl import config, util
 
-    parser = ArgumentParser()
-    parser.add_argument("-c", "--config", help="config file")
-    args = parser.parse_args()
-    config.load_config(args.config)
+    util.default_arg_config_loggers("tg/logs")
 
     # liiter初始化
     host, port = config.get("redis/host"), config.get("redis/port")
-    litter.listen_bg(host, port)
-    litter.connect(host, port, app_name="tg")
+    litter.listen_bg(host, port, app_name="tg")
     beat_bg()
 
     # telethon初始化
-    _init_client(config.get("tg"))
+    _init_client(config.get("tg/auth"))
     logger.info(f"Current user: {get_me().username}")
     client.add_event_handler(_dispatcher, events.NewMessage(incoming=True))
     client.add_event_handler(_my_message_handler, events.NewMessage(chats=me.id))

@@ -161,6 +161,7 @@ def handler_callback(message: Message):
         try:
             ret = f.result()
         except:
+            logger.error(f"Exception while handling message {message}:")
             traceback.print_exc()
         else:
             if "litter-request-id" in message.headers:
@@ -174,10 +175,8 @@ def handler_callback(message: Message):
                 _redis_client.lpush(resp.response_queue, resp.serialize())
                 _redis_client.expire(resp.response_queue, message.headers["litter-request-timeout"])
                 publish(f"{message.channel}:response", {"headers": resp.headers, "body": resp.body})
-            elif isinstance(ret, Message):
-                publish(ret.channel, ret.body, headers=ret.headers)
             else:
-                raise ValueError(f"Unexpected response from Litter: {ret}")
+                logger.warning(f"Unhandled response: {ret}")
 
     return _handler
 
