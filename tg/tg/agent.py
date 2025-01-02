@@ -1,10 +1,9 @@
 import asyncio
 import time
-from typing import Sequence
+from typing import Sequence, Mapping
 
 import telethon.tl.patched
 from loguru import logger
-from sqlalchemy.cyextension.util import Mapping
 from telethon import TelegramClient, events
 from telethon.tl.types import User
 
