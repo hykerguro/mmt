@@ -97,6 +97,21 @@ if __name__ == "__main__":
     util.init_loguru_loggers("watchdog/logs")
 
     agents = {
+        "heartbeat": {
+            "cmd": [args.python, "heartbeat/heartbeat/server.py", "-c", args.agent_config],
+            "src": "heartbeat/",
+            "conf": args.agent_config,
+        },
+        "monitor": {
+            "cmd": [args.python, "-m", "litter.monitor", "-c", args.agent_config],
+            "src": "litter/litter/monitor",
+            "conf": args.agent_config,
+        },
+        "ntfy": {
+            "cmd": [args.python, "ntfy/ntfy/agent.py", "-c", args.agent_config],
+            "src": "ntfy/",
+            "conf": args.agent_config,
+        },
         "tg": {
             "cmd": [args.python, "tg/tg/agent.py", "-c", args.agent_config],
             "src": "tg/",
@@ -111,6 +126,11 @@ if __name__ == "__main__":
             "cmd": [args.python, "apps/random_setu/random_setu.py", "-c", args.agent_config],
             "src": "apps/random_setu/",
             "conf": args.agent_config,
-        }
+        },
+        "pixiv_fav": {
+            "cmd": [args.python, "-m", "apps.pixiv_fav", "fav", "follow", "-c", args.agent_config],
+            "src": "apps/pixiv_fav/",
+            "conf": args.agent_config,
+        },
     }
     monitor_and_restart(agents)
