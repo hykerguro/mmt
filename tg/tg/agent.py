@@ -1,9 +1,10 @@
 import asyncio
 import time
-from typing import Sequence, Mapping
+from typing import Sequence, Mapping, TypeAlias
 
 import telethon.tl.patched
 from loguru import logger
+from telethon import Button
 from telethon import TelegramClient, events
 from telethon.tl.types import User
 
@@ -56,16 +57,16 @@ def _init_client(tg_conf: dict[str, int | str]) -> TelegramClient:
 
 
 @logger.catch
-async def _dispatcher(event: events.NewMessage.Event):
+async def message_dispatcher(event: events.NewMessage.Event):
     message: telethon.tl.patched.Message = event.message
     dm = message.to_dict()
     litter.publish("tg.message.receive", dm)
 
 
-async def _my_message_handler(event: events.NewMessage.Event):
-    logger.debug(str(type(event)))
-    message: telethon.custom.Message = event.message
-    await get_client().send_message(message.peer_id, "1", reply_to=message)
+@logger.catch
+async def callback_query_dispatcher(event: events.CallbackQuery.Event):
+    query = event.query
+    litter.publish("tg.callbackquery.receive", query.to_dict())
 
 
 def _tlobjec2dict(obj):
@@ -90,14 +91,40 @@ def sleep_util_complete(coro, *, timeout=5, eps=0.05):
         raise CoroTimeoutException()
 
 
+_BUTTON_EXPR: TypeAlias = dict[str, str]
+
+
+def build_button(buttons: _BUTTON_EXPR | list[_BUTTON_EXPR] | list[list[_BUTTON_EXPR]]):
+    """
+    {
+        "type": "text"/"url",
+        "data": ...,
+        other args: ...
+    }
+    :param buttons:
+    :return:
+    """
+    if isinstance(buttons, dict):
+        assert buttons["type"] in ("inline", "url")
+        return getattr(Button, buttons["type"])(**{k: v for k, v in buttons.items() if k != "type"})
+    elif isinstance(buttons, list):
+        return [build_button(button) for button in buttons]
+
+
 @litter.subscribe("tg.send_message")
 def ltcmd_send_message(message: litter.Message):
-    return sleep_util_complete(get_client().send_message(**message.json()))
+    kwargs = message.json()
+    if "buttons" in kwargs:
+        kwargs["buttons"] = build_button(kwargs["buttons"])
+    return sleep_util_complete(get_client().send_message(**kwargs))
 
 
 @litter.subscribe("tg.send_file")
 def ltcmd_send_file(message: litter.Message):
-    return sleep_util_complete(get_client().send_file(**message.json()))
+    kwargs = message.json()
+    if "buttons" in kwargs:
+        kwargs["buttons"] = build_button(kwargs["buttons"])
+    return sleep_util_complete(get_client().send_file(**kwargs))
 
 
 @litter.subscribe("tg.delete_message")
@@ -119,6 +146,6 @@ if __name__ == '__main__':
     # telethon初始化
     _init_client(config.get("tg/auth"))
     logger.info(f"Current user: {get_me().username}")
-    client.add_event_handler(_dispatcher, events.NewMessage(incoming=True))
-    client.add_event_handler(_my_message_handler, events.NewMessage(chats=me.id))
+    client.add_event_handler(message_dispatcher, events.NewMessage(incoming=True))
+    client.add_event_handler(callback_query_dispatcher, events.CallbackQuery())
     client.run_until_disconnected()

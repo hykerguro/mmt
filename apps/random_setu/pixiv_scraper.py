@@ -46,9 +46,9 @@ def illust2setudb(illust, phase: str, original_urls, meta) -> tuple[Setu, bool]:
         artist_name=illust["userName"],
         artist_url=f"https://www.pixiv.net/users/{illust['userId']}",
         create_time=datetime.fromisoformat(illust["createDate"]).astimezone(tz),
-        r18=illust["xRestrict"],
+        r18=2 if illust["xRestrict"] == 1 else 1,  # 0-不确定；1-不是r18；2-是r18
         sl=illust["sl"],
-        ai_type=illust["aiType"],
+        ai_type=illust["aiType"],  # 0-不确定；1-不是AI生成；2-是AI生成
         tags=json.dumps(illust["tags"], ensure_ascii=False),
         meta=meta,
     )

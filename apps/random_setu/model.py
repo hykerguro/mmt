@@ -1,7 +1,7 @@
 import datetime
 import json
 
-from peewee import Model, CharField, DateTimeField, TextField, DatabaseProxy, IntegerField
+from peewee import Model, CharField, DateTimeField, TextField, DatabaseProxy, IntegerField, DoesNotExist, fn
 from playhouse import db_url as _db_url
 
 db = DatabaseProxy()
@@ -65,17 +65,71 @@ class Setu(BaseModel):
     def tags_data(self, value: list[str]):
         self.tags = json.dumps(value)
 
+    @classmethod
+    def get_random(cls, user_id: int, *, ai_type: int = 0, r18: int = 0, sl: int = 0):
+        condition = []
+        if ai_type != 0:
+            condition.append(cls.ai_type == ai_type)
+        if r18 != 0:
+            condition.append(cls.r18 == r18)
+        if r18 == 1 and sl != 0:
+            condition.append(cls.sl <= sl)
+        recent_setus = cls.select().where(*condition) if condition else cls.select()
+        viewed = ViewHistory.select(ViewHistory.setu_id).where(ViewHistory.user_id == user_id)
+        return recent_setus.where(cls.id.not_in(viewed)).order_by(fn.Rand()).limit(1).first()
+
 
 class ViewHistory(BaseModel):
-    userId = CharField(max_length=100)
-    setuId = CharField(max_length=32)
+    user_id = CharField(max_length=100)
+    setu_id = CharField(max_length=32)
     time = DateTimeField(default=datetime.datetime.now)
 
     class Meta:
         table_name = 'view_history'
 
 
+class UserConfig(BaseModel):
+    user_id = CharField(max_length=100)
+    config = TextField()
+    modified_time = DateTimeField(default=datetime.datetime.now)
+
+    DEFAULT_CONFIG = json.dumps({
+        "ai_type": 0,
+        "r18": 0,
+        "sl": 6,
+    })
+
+    class Meta:
+        table_name = 'user_config'
+
+    @property
+    def config_data(self):
+        return json.loads(self.config) if self.config else {}
+
+    @config_data.setter
+    def config_data(self, value):
+        self.config = json.dumps(value)
+
+    @classmethod
+    def get_or_default(cls, user_id: int):
+        ucf, _ = cls.get_or_create(user_id=user_id, defaults={
+            'user_id': user_id,
+            'config': cls.DEFAULT_CONFIG,
+        })
+        return ucf
+
+    @classmethod
+    def update_config(cls, user_id: int, config: dict):
+        try:
+            ucf = cls.get(cls.user_id == user_id)
+            ucf.config = json.dumps(config)
+            ucf.save()
+        except DoesNotExist:
+            ucf = cls.create(user_id=user_id, config=json.dumps(config))
+        return ucf
+
+
 def initialize_database(db_url: str):
     db.initialize(_db_url.connect(db_url))
-    db.create_tables([Setu, ViewHistory], safe=True)
+    db.create_tables([Setu, ViewHistory, UserConfig], safe=True)
     db.close()
