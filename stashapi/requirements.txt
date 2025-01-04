@@ -1,0 +1,5 @@
+requests
+gql
+loguru
+requests-toolbelt
+-e ./confctl

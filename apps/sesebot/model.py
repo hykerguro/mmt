@@ -70,11 +70,11 @@ class SetuEntity(BaseModel):
     @classmethod
     def get_random(cls, user_id: int, ucf: dict[str, Any]):
         condition = []
-        if ai_type := ucf.get("ai_type", UserConfigEntity.DEFAULT_CONFIG["ai_type"]) != 0:
+        if (ai_type := ucf.get("ai_type", UserConfigEntity.DEFAULT_CONFIG["ai_type"])) != 0:
             condition.append(cls.ai_type == ai_type)
-        if r18 := ucf.get("r18", UserConfigEntity.DEFAULT_CONFIG["r18"]) != 0:
+        if (r18 := ucf.get("r18", UserConfigEntity.DEFAULT_CONFIG["r18"])) != 0:
             condition.append(cls.r18 == r18)
-        if real := ucf.get("real", UserConfigEntity.DEFAULT_CONFIG["real"]) != 0:
+        if (real := ucf.get("real", UserConfigEntity.DEFAULT_CONFIG["real"])) != 0:
             condition.append(cls.real == real)
         if r18 == 1 and (sl := ucf.get("sl", UserConfigEntity.DEFAULT_CONFIG["sl"])) != 0:
             condition.append(cls.sl <= sl)
@@ -122,6 +122,15 @@ class UserConfigEntity(BaseModel):
             'user_id': user_id,
             'config': json.dumps(cls.DEFAULT_CONFIG),
         })
+        modified = False
+        ducf = ucf.config_data
+        for k, v in cls.DEFAULT_CONFIG.items():
+            if k not in ducf:
+                ducf[k] = v
+                modified = True
+        if modified:
+            ucf.config_data = ducf
+            ucf.save()
         return ucf
 
     @classmethod

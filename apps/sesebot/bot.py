@@ -133,16 +133,21 @@ def send_random_setu(user_id: int):
             source = "pixiv"
 
         logger.debug(f"Setu: {setu}, lines={lines}, source={source}")
-        tg.send_file(user_id, file, caption='\n'.join(lines))
-    except Exception as e:
-        logger.error(format_exc())
-        tg.send_message(user_id, f"涩图被派蒙没收了")
-    else:
-        ViewHistoryEntity.create(
+        vhe = ViewHistoryEntity.create(
             user_id=user_id,
             setu_id=setu.id,
             setu_source=source
         )
+        filemsg = tg.send_file(user_id, file, caption='\n'.join(lines))
+    except Exception:
+        logger.error(format_exc())
+        try: 
+            tg.delete_message(user_id, filemsg["id"])
+            ViewHistoryEntity.delete().where(ViewHistoryEntity.id==vhe.id).execute()
+        except NameError:
+            pass
+        tg.send_message(user_id, f"涩图被派蒙没收了")
+
     finally:
         tg.delete_message(user_id, prev_msg["id"])
 

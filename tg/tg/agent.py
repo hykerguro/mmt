@@ -115,6 +115,7 @@ def build_button(buttons: _BUTTON_EXPR | list[_BUTTON_EXPR] | list[list[_BUTTON_
 @litter.subscribe("tg.send_message")
 def ltcmd_send_message(message: litter.Message):
     kwargs = message.json()
+    logger.debug(f"send_mesage: {kwargs=}")
     if "buttons" in kwargs:
         kwargs["buttons"] = build_button(kwargs["buttons"])
     return sleep_util_complete(get_client().send_message(**kwargs))
@@ -123,6 +124,7 @@ def ltcmd_send_message(message: litter.Message):
 @litter.subscribe("tg.send_file")
 def ltcmd_send_file(message: litter.Message):
     kwargs = message.json()
+    logger.debug(f"send_file: {kwargs=}")
     file = kwargs["file"]
     if isinstance(file, dict) and "bytes" in file and "name" in file:
         iob = BytesIO(file["bytes"])
@@ -136,7 +138,9 @@ def ltcmd_send_file(message: litter.Message):
 
 @litter.subscribe("tg.delete_message")
 def ltcmd_delete_message(message: litter.Message):
-    return sleep_util_complete(get_client().delete_messages(**message.json()))
+    kwargs = message.json()
+    logger.debug(f"send_mesage: {kwargs=}")
+    return sleep_util_complete(get_client().delete_messages(**kwargs))
 
 
 if __name__ == '__main__':
