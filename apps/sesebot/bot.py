@@ -142,8 +142,8 @@ def send_random_setu(user_id: int):
     except Exception:
         logger.error(format_exc())
         try: 
-            tg.delete_message(user_id, filemsg["id"])
             ViewHistoryEntity.delete().where(ViewHistoryEntity.id==vhe.id).execute()
+            tg.delete_message(user_id, filemsg["id"])
         except NameError:
             pass
         tg.send_message(user_id, f"涩图被派蒙没收了")
