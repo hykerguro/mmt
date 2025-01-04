@@ -1,11 +1,19 @@
 import argparse
+from typing import Any, Mapping, Sequence, TypeAlias
 
 from confctl import config
 
+_A: TypeAlias = Sequence[Sequence[str | Mapping[str, Any]]]
 
-def get_argparser(*arg, **kwargs) -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(*arg, **kwargs)
-    parser.add_argument("-c", "--config_path", type=str, nargs="*", default='./config.json', help='配置文件路径')
+
+def get_argparser(arguments: _A | None = None) -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--config_path",
+                        type=str, nargs="*", default='./config.json', help='配置文件路径')
+    if arguments is not None:
+        for arg in arguments:
+            assert isinstance(arg, Sequence) and isinstance(arg[-1], Mapping)
+            parser.add_argument(*arg[:-1], **arg[-1])
     return parser
 
 
@@ -29,9 +37,10 @@ def init_loguru_loggers(key):
     return logger
 
 
-def default_arg_config_loggers(key: str | None = None):
-    args = get_argparser().parse_args()
-    _c = init_config(args)
-    if key is not None:
-        init_loguru_loggers(key)
-    return _c
+def default_arg_config_loggers(log_config_key: str | None = None,
+                               extra_arguments: _A | None = None) -> argparse.Namespace:
+    args = get_argparser(extra_arguments).parse_args()
+    init_config(args)
+    if log_config_key is not None:
+        init_loguru_loggers(log_config_key)
+    return args

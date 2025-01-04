@@ -4,7 +4,6 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from loguru import logger
 
 import litter
-# from tg import send_file, TgApiException, send_message
 import tg
 from confctl import config, util
 from heartbeat.agent import beat_bg
@@ -132,5 +131,11 @@ def main():
 
 
 if __name__ == '__main__':
-    util.default_arg_config_loggers("random_setu/logs")
-    main()
+    args = util.default_arg_config_loggers("random_setu/logs", extra_arguments=[
+        ["--only-init-database", dict(action="store_true", help="只执行数据库初始化")]
+    ])
+    if args.only_init_database:
+        initialize_database(config.get("db_url"))
+        logger.info(f"数据库初始化完成")
+    else:
+        main()

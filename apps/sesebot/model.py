@@ -14,29 +14,30 @@ class BaseModel(Model):
 
 class Setu(BaseModel):
     # 渠道
-    source = CharField(max_length=16)  # pixiv
-    phase = CharField(max_length=32, null=True)  # pixiv:fav; pixiv:follow; pixiv:recommend
+    source = CharField(max_length=16, help_text="来源：pixiv, stash")
+    phase = CharField(max_length=32, null=True, help_text="二级来源：<source>:<phase>")
 
     # 基本属性
-    id = CharField(max_length=32)
-    page = TextField(null=True)
-    title = CharField(max_length=500)
-    page_count = IntegerField()  # 图片数量
-    preview_url = TextField()
-    original_url = TextField()  # list
-    artist_name = CharField(max_length=100)
-    artist_url = TextField()
-    create_time = DateTimeField(null=True)
-    income_time = DateTimeField(default=datetime.datetime.now)
+    id = CharField(max_length=32, help_text="ID")
+    page = TextField(null=True, help_text="主页")
+    title = CharField(max_length=500, help_text="标题")
+    page_count = IntegerField(help_text="数量")
+    preview_url = TextField(help_text="预览图")
+    original_url = TextField(help_text="原图：json化的list")
+    artist_name = CharField(max_length=100, null=True, help_text="作者")
+    artist_url = TextField(help_text="作者主页")
+    create_time = DateTimeField(null=True, help_text="创建时间")
+    income_time = DateTimeField(default=datetime.datetime.now, help_text="入库时间")
 
     # 标签
-    r18 = CharField(max_length=1)  # 1: r18; 0: 非r18
-    sl = IntegerField()  # 色情程度 0~6
-    ai_type = CharField(max_length=1)  # 1-非AI；2-AI生成
-    tags = TextField()  # list
+    r18 = CharField(max_length=1, help_text="R18：0不确定；1-否；2-是")
+    sl = IntegerField(help_text="涩度：0不确定；2~6")  # 色情程度 0~6
+    ai_type = CharField(max_length=1, help_text="AI生成：0-不确定；1-否；2-是")
+    real = CharField(max_length=1, help_text="真人涩情：0-不确定；1-否；2-是")
+    tags = TextField(help_text="标签：json化的list")  # list
 
     # 其他
-    meta = TextField(default="{}")
+    meta = TextField(default="{}", help_text="元数据：json字符串")
 
     class Meta:
         table_name = 'setu'
@@ -80,18 +81,19 @@ class Setu(BaseModel):
 
 
 class ViewHistory(BaseModel):
-    user_id = CharField(max_length=100)
-    setu_id = CharField(max_length=32)
-    time = DateTimeField(default=datetime.datetime.now)
+    user_id = CharField(max_length=100, help_text="用户ID")
+    setu_id = CharField(max_length=32, help_text="涩图ID")
+    setu_source = CharField(max_length=16, help_text="涩图来源")
+    time = DateTimeField(default=datetime.datetime.now, help_text="浏览时间")
 
     class Meta:
         table_name = 'view_history'
 
 
 class UserConfig(BaseModel):
-    user_id = CharField(max_length=100)
-    config = TextField()
-    modified_time = DateTimeField(default=datetime.datetime.now)
+    user_id = CharField(max_length=100, help_text="用户ID")
+    config = TextField(help_text="用户配置：json字符串")
+    modified_time = DateTimeField(default=datetime.datetime.now, help_text="修改时间")
 
     DEFAULT_CONFIG = json.dumps({
         "ai_type": 0,

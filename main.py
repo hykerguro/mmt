@@ -122,9 +122,9 @@ if __name__ == "__main__":
             "src": "apps/random_setu/",
             "conf": args.agent_config,
         },
-        "random_setu": {
-            "cmd": [args.python, "apps/random_setu/random_setu.py", "-c", args.agent_config],
-            "src": "apps/random_setu/",
+        "sesebot": {
+            "cmd": [args.python, "apps/sesebot/bot.py", "-c", args.agent_config],
+            "src": "apps/sesebot/",
             "conf": args.agent_config,
         },
         "pixiv_fav": {
