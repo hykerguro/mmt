@@ -1,14 +1,12 @@
 from traceback import print_exc
-from typing import TypeVar
+from typing import TypeVar, Any
 
+import requests
 from gql import Client, gql
 from gql.transport.requests import RequestsHTTPTransport
 from loguru import logger
 
-try:
-    from .model import *
-except ImportError:
-    from model import *
+from .model import *
 
 _T = TypeVar('_T')
 
@@ -16,11 +14,15 @@ _T = TypeVar('_T')
 class StashAPI:
     @classmethod
     def configure(cls, url: str, token: str):
+        cls.url = url
+        headers = {
+            'Apikey': token
+        }
+        cls.session = requests.Session()
+        cls.session.headers.update(headers)
         cls.client = Client(transport=RequestsHTTPTransport(
             url=url,
-            headers={
-                'Apikey': token
-            }
+            headers=headers,
         ), fetch_schema_from_transport=True)
 
     @classmethod
@@ -36,7 +38,7 @@ class StashAPI:
 
     @classmethod
     def execute(cls, request_string, **variable_values):
-        logger.info(f"Request string: {request_string}")
+        logger.debug(f"Request string: {request_string}")
         return cls.client.execute(gql(request_string), variable_values=variable_values)
 
     @classmethod
@@ -51,6 +53,11 @@ class StashAPI:
         return cls.query("findImages",
                          dict(image_filter=image_filter, filter=filter, image_ids=image_ids or [], ids=ids or []),
                          FindImagesResultType)
+
+    @classmethod
+    def download_file(cls, url: str) -> bytes:
+        resp = cls.session.get(url)
+        return resp.content
 
 
 try:

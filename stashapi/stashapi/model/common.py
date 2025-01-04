@@ -2,6 +2,17 @@ import enum
 from dataclasses import dataclass, asdict, field
 from typing import Sequence, Optional, Self, Any
 
+__all__ = [
+    "to_fields",
+    "to_params",
+    "from_dict",
+    "StashObject",
+    "IDPlaceholder",
+    "IDAndNamePlaceholder",
+    "SortDirectionEnum",
+    "FindFilterType"
+]
+
 
 def get_origin_type(t) -> tuple[type, type | None]:
     if hasattr(t, "__origin__"):
@@ -19,6 +30,8 @@ def to_fields(f) -> str:
         f = f.__args__[0]
     if f is IDPlaceholder:
         return "{id}"
+    elif f is IDAndNamePlaceholder:
+        return "{id,name}"
     elif issubclass(f, StashObject):
         res = []
         for attr, t in vars(f)["__annotations__"].items():
@@ -63,24 +76,9 @@ def from_dict(cls, data):
             if attr.startswith("_"):
                 continue
             args[attr] = from_dict(t, data.get(attr))
-            # if issubclass(f_type, list):
-            #     sub_data_list = data.get(attr, [])
-            #     assert isinstance(sub_data_list, list)
-            #     assert sub_type is not None
-            #     args[attr] = [from_dict(sub_type, sub_data) for sub_data in sub_data_list]
-            # if issubclass(f_type, StashObject):
-            #     sub_data = data.get(attr, {})
-            #     assert isinstance(sub_data, dict)
-            #     args[attr] = from_dict(f_type, sub_data)
-            # else:
-            #     args[attr] = data.get(attr, None)
         return f_type(**args)
     elif issubclass(f_type, list):
         return [from_dict(sub_type, sub_data) for sub_data in data]
-    # elif f_type is int:
-    #     return int(data or 0)
-    # elif f_type is str:
-    #     return str(data or 0.)
     else:
         return data
 
@@ -99,7 +97,12 @@ class StashObject:
         return from_dict(cls, data)
 
 
-class IDPlaceholder(int):
+class IDPlaceholder(dict):
+    pass
+
+
+# TODO: Placeholder["id", "name"]
+class IDAndNamePlaceholder(dict):
     pass
 
 

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
-from .common import StashObject, IDPlaceholder
+from .common import StashObject, IDPlaceholder, IDAndNamePlaceholder
 from .criterion import IntCriterionInput, StringCriterionInput, ResolutionCriterionInput, \
     HierarchicalMultiCriterionInput, DateCriterionInput, MultiCriterionInput, TimestampCriterionInput
 
@@ -25,9 +25,9 @@ class Gallery(StashObject):
     id: int
     image_count: int
     organized: bool
-    performers: list[IDPlaceholder]
+    performers: list[IDAndNamePlaceholder]
     scenes: list[IDPlaceholder]
-    tags: list[IDPlaceholder]
+    tags: list[IDAndNamePlaceholder]
     updated_at: datetime
     urls: list[str]
     paths: GalleryPathsType
@@ -38,7 +38,7 @@ class Gallery(StashObject):
     folder: Optional[IDPlaceholder] = field(default=None)
     photographer: Optional[str] = field(default=None)
     rating100: Optional[int] = field(default=None)
-    studio: Optional[IDPlaceholder] = field(default=None)
+    studio: Optional[IDAndNamePlaceholder] = field(default=None)
     title: Optional[str] = field(default=None)
     # url: Optional[str] = field(default=None)  # deprecation_reason: Use urls
 

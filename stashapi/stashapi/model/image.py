@@ -1,7 +1,10 @@
+from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Optional
 
 from .common import *
-from .criterion import *
+from .criterion import StringCriterionInput, IntCriterionInput, DateCriterionInput, ResolutionCriterionInput, \
+    OrientationCriterionInput, HierarchicalMultiCriterionInput, MultiCriterionInput, TimestampCriterionInput
 from .gallery import GalleryFilterType
 
 
@@ -59,8 +62,8 @@ class Image(StashObject):
     id: int
     organized: bool
     paths: ImagePathsType
-    performers: list[IDPlaceholder]
-    tags: list[IDPlaceholder]
+    performers: list[IDAndNamePlaceholder]
+    tags: list[IDAndNamePlaceholder]
     updated_at: datetime
     urls: list[str]
     # visual_files: list[IDPlaceholder]
@@ -70,7 +73,7 @@ class Image(StashObject):
     o_counter: Optional[int] = field(default=None)
     photographer: Optional[str] = field(default=None)
     rating100: Optional[int] = field(default=None)
-    studio: Optional[IDPlaceholder] = field(default=None)
+    studio: Optional[IDAndNamePlaceholder] = field(default=None)
     title: Optional[str] = field(default=None)
     # url: Optional[str] = field(default=None)  # deprecation_reason: Use urls
 

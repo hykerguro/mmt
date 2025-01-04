@@ -118,8 +118,8 @@ if __name__ == "__main__":
             "conf": args.agent_config,
         },
         "pixiv_scraper": {
-            "cmd": [args.python, "apps/random_setu/pixiv_scraper.py", "-c", args.agent_config],
-            "src": "apps/random_setu/",
+            "cmd": [args.python, "apps/sesebot/pixiv_scraper.py", "-c", args.agent_config],
+            "src": "apps/sesebot/",
             "conf": args.agent_config,
         },
         "sesebot": {

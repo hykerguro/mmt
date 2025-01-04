@@ -1,5 +1,6 @@
 import asyncio
 import time
+from io import BytesIO
 from typing import Sequence, Mapping, TypeAlias
 
 import telethon.tl.patched
@@ -122,6 +123,12 @@ def ltcmd_send_message(message: litter.Message):
 @litter.subscribe("tg.send_file")
 def ltcmd_send_file(message: litter.Message):
     kwargs = message.json()
+    file = kwargs["file"]
+    if isinstance(file, dict) and "bytes" in file and "name" in file:
+        iob = BytesIO(file["bytes"])
+        iob.name = file["name"]
+        kwargs["file"] = iob
+
     if "buttons" in kwargs:
         kwargs["buttons"] = build_button(kwargs["buttons"])
     return sleep_util_complete(get_client().send_file(**kwargs))

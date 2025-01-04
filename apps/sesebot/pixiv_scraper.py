@@ -13,16 +13,16 @@ from heartbeat.agent import beat_bg
 from pixiv_webapi.webapi import PixivWebAPI
 
 try:
-    from .model import Setu, initialize_database
+    from .model import SetuEntity, initialize_database
 except ImportError:
-    from model import Setu, initialize_database
+    from model import SetuEntity, initialize_database
 
 papi: PixivWebAPI | None = None
 
 tz = pytz.timezone('Asia/Shanghai')
 
 
-def illust2setudb(illust, phase: str, original_urls, meta) -> tuple[Setu, bool]:
+def illust2setudb(illust, phase: str, original_urls, meta) -> tuple[SetuEntity, bool]:
     url = None
     if "urls" in illust:
         if "1200x1200" in illust["urls"]:
@@ -34,7 +34,7 @@ def illust2setudb(illust, phase: str, original_urls, meta) -> tuple[Setu, bool]:
         illust = papi.illust(illust["id"])
         return illust2setudb(illust, phase, original_urls, meta)
 
-    return Setu.get_or_create(
+    return SetuEntity.get_or_create(
         source="pixiv",
         phase=phase,
         id=illust["id"],

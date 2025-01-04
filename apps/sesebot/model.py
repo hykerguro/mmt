@@ -1,5 +1,6 @@
 import datetime
 import json
+from typing import Any
 
 from peewee import Model, CharField, DateTimeField, TextField, DatabaseProxy, IntegerField, DoesNotExist, fn
 from playhouse import db_url as _db_url
@@ -12,7 +13,7 @@ class BaseModel(Model):
         database = db
 
 
-class Setu(BaseModel):
+class SetuEntity(BaseModel):
     # 渠道
     source = CharField(max_length=16, help_text="来源：pixiv, stash")
     phase = CharField(max_length=32, null=True, help_text="二级来源：<source>:<phase>")
@@ -67,20 +68,22 @@ class Setu(BaseModel):
         self.tags = json.dumps(value)
 
     @classmethod
-    def get_random(cls, user_id: int, *, ai_type: int = 0, r18: int = 0, sl: int = 0):
+    def get_random(cls, user_id: int, ucf: dict[str, Any]):
         condition = []
-        if ai_type != 0:
+        if ai_type := ucf.get("ai_type", UserConfigEntity.DEFAULT_CONFIG["ai_type"]) != 0:
             condition.append(cls.ai_type == ai_type)
-        if r18 != 0:
+        if r18 := ucf.get("r18", UserConfigEntity.DEFAULT_CONFIG["r18"]) != 0:
             condition.append(cls.r18 == r18)
-        if r18 == 1 and sl != 0:
+        if real := ucf.get("real", UserConfigEntity.DEFAULT_CONFIG["real"]) != 0:
+            condition.append(cls.real == real)
+        if r18 == 1 and (sl := ucf.get("sl", UserConfigEntity.DEFAULT_CONFIG["sl"])) != 0:
             condition.append(cls.sl <= sl)
         recent_setus = cls.select().where(*condition) if condition else cls.select()
-        viewed = ViewHistory.select(ViewHistory.setu_id).where(ViewHistory.user_id == user_id)
+        viewed = ViewHistoryEntity.select(ViewHistoryEntity.setu_id).where(ViewHistoryEntity.user_id == user_id)
         return recent_setus.where(cls.id.not_in(viewed)).order_by(fn.Rand()).limit(1).first()
 
 
-class ViewHistory(BaseModel):
+class ViewHistoryEntity(BaseModel):
     user_id = CharField(max_length=100, help_text="用户ID")
     setu_id = CharField(max_length=32, help_text="涩图ID")
     setu_source = CharField(max_length=16, help_text="涩图来源")
@@ -90,16 +93,17 @@ class ViewHistory(BaseModel):
         table_name = 'view_history'
 
 
-class UserConfig(BaseModel):
+class UserConfigEntity(BaseModel):
     user_id = CharField(max_length=100, help_text="用户ID")
     config = TextField(help_text="用户配置：json字符串")
     modified_time = DateTimeField(default=datetime.datetime.now, help_text="修改时间")
 
-    DEFAULT_CONFIG = json.dumps({
+    DEFAULT_CONFIG = {
         "ai_type": 0,
         "r18": 0,
         "sl": 6,
-    })
+        "real": 0,
+    }
 
     class Meta:
         table_name = 'user_config'
@@ -116,7 +120,7 @@ class UserConfig(BaseModel):
     def get_or_default(cls, user_id: int):
         ucf, _ = cls.get_or_create(user_id=user_id, defaults={
             'user_id': user_id,
-            'config': cls.DEFAULT_CONFIG,
+            'config': json.dumps(cls.DEFAULT_CONFIG),
         })
         return ucf
 
@@ -133,5 +137,5 @@ class UserConfig(BaseModel):
 
 def initialize_database(db_url: str):
     db.initialize(_db_url.connect(db_url))
-    db.create_tables([Setu, ViewHistory, UserConfig], safe=True)
+    db.create_tables([SetuEntity, ViewHistoryEntity, UserConfigEntity], safe=True)
     db.close()
