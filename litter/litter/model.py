@@ -6,6 +6,8 @@ __all__ = [
     "Message",
     "serialize",
     "deserialize",
+    "RequestTimeoutException",
+    "RemoteFunctionRaisedException"
 ]
 
 from functools import cached_property
@@ -22,8 +24,14 @@ class LitterException(Exception):
     pass
 
 
-class LitterRequestTimeoutException(LitterException):
+class RequestTimeoutException(LitterException):
     pass
+
+
+class RemoteFunctionRaisedException(LitterException):
+    def __init__(self, resp: "Response"):
+        self.resp = resp
+        super().__init__(resp.headers['litter-exception-type'] + ": " + resp.headers['litter-exception-message'])
 
 
 class LitterJsonEncoder(json.JSONEncoder):

@@ -8,7 +8,7 @@ from typing import Callable, Collection, Any, Iterator
 import redis
 from loguru import logger
 
-from .model import Message, serialize, LitterRequestTimeoutException, Response
+from .model import Message, serialize, RequestTimeoutException, Response
 
 __all__ = [
     "connect",
@@ -112,7 +112,7 @@ def request(channel: str, body, *, headers: dict[str, Any] | None = None, timeou
     except:
         traceback.print_exc()
         publish(f"{channel}:timeout", body, headers=headers)
-        raise LitterRequestTimeoutException()
+        raise RequestTimeoutException()
 
     return Response.from_redis_response(resp)
 
@@ -169,6 +169,7 @@ def handler_callback(message: Message):
         try:
             ret = f.result()
         except Exception as e:
+            # 函数报错，返回错误response
             logger.error(f"Exception while handling message {message}:")
             traceback.print_exc()
             if "litter-request-id" in message.headers:
@@ -179,6 +180,7 @@ def handler_callback(message: Message):
                 resp = _build_response(message, None, headers=headers)
                 _do_response(resp, message.headers["litter-request-timeout"])
         else:
+            # 函数正常返回
             if "litter-request-id" in message.headers:
                 # is litter-request, litter-response is required
                 if ret is None:
