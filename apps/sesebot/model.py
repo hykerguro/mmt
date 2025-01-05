@@ -144,7 +144,17 @@ class UserConfigEntity(BaseModel):
         return ucf
 
 
+class TimedSetuEntity(BaseModel):
+    user_id = CharField(max_length=100, help_text="用户ID")
+    phase = CharField(max_length=4, help_text="早中晚")
+    job_id = CharField(max_length=32, help_text="schd job id")
+    time = DateTimeField(default=datetime.datetime.now, help_text="订阅时间")
+
+    class Meta:
+        table_name = 'timed_setu'
+
+
 def initialize_database(db_url: str):
     db.initialize(_db_url.connect(db_url))
-    db.create_tables([SetuEntity, ViewHistoryEntity, UserConfigEntity], safe=True)
+    db.create_tables([SetuEntity, ViewHistoryEntity, UserConfigEntity, TimedSetuEntity], safe=True)
     db.close()

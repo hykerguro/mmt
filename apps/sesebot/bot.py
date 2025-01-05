@@ -1,4 +1,5 @@
 import random
+import re
 from traceback import format_exc
 from typing import Any
 
@@ -14,9 +15,10 @@ from stashapi import StashAPI, GalleryFilterType, HierarchicalMultiCriterionInpu
     ImageFilterType, MultiCriterionInput, Image, Gallery
 
 try:
-    from .model import SetuEntity, ViewHistoryEntity, initialize_database, UserConfigEntity
+    from .model import SetuEntity, ViewHistoryEntity, initialize_database, UserConfigEntity, TimedSetuEntity
 except ImportError:
-    from model import SetuEntity, ViewHistoryEntity, initialize_database, UserConfigEntity
+    from model import SetuEntity, ViewHistoryEntity, initialize_database, UserConfigEntity, TimedSetuEntity
+from schd.api import add_job, remove_job
 
 papi: PixivWebAPI | None = None
 
@@ -141,8 +143,8 @@ def send_random_setu(user_id: int):
         filemsg = tg.send_file(user_id, file, caption='\n'.join(lines))
     except Exception:
         logger.error(format_exc())
-        try: 
-            ViewHistoryEntity.delete().where(ViewHistoryEntity.id==vhe.id).execute()
+        try:
+            ViewHistoryEntity.delete().where(ViewHistoryEntity.id == vhe.id).execute()
             tg.delete_message(user_id, filemsg["id"])
         except NameError:
             pass
@@ -150,6 +152,65 @@ def send_random_setu(user_id: int):
 
     finally:
         tg.delete_message(user_id, prev_msg["id"])
+
+
+@litter.subscribe("sesebot.timed_setu")
+def send_timed_setu(message: litter.Message):
+    params = message.json()
+    user_id, phase = params["user_id"], params["phase"]
+    tg.send_message(user_id, f"啊哈哈哈，{phase}安涩图来喽")
+    send_random_setu(user_id)
+
+
+def add_timed_setu(user_id: int, phase: str, time_expr: str | None = None):
+    if TimedSetuEntity.select().where(TimedSetuEntity.user_id == user_id,
+                                      TimedSetuEntity.phase == phase).first() is not None:
+        tg.send_message(user_id, f"你的{phase}安涩图之前已经订阅过了")
+        return
+
+    try:
+        sep = ":" if ":" in time_expr else "："
+        h, m = map(int, time_expr.split(sep, maxsplit=1))
+        assert 0 <= h < 24 and 0 <= m < 60
+    except:
+        phase_eg = {"早": 8, "午": 13, "晚": 23}
+        tg.send_message(user_id, f"你想要{phase}安涩图吗，告诉小派蒙时间（24小时制）。例：\n"
+                                 f"{phase}安涩图 {phase_eg[phase]}:00")
+        return
+    try:
+        job_id = add_job("sesebot.timed_setu", {"user_id": user_id, "phase": phase}, trigger="cron",
+                         crontab=f"{m} {h} * * *")
+        tse = TimedSetuEntity.create(user_id=user_id, phase=phase, job_id=job_id)
+        msg = tg.send_message(user_id, f"小派蒙以后每天{h:0>2d}:{m:0>2d}给你发{phase}安涩图")
+    except Exception:
+        logger.error(format_exc())
+        try:
+            remove_job(job_id)
+        except:
+            pass
+        try:
+            TimedSetuEntity.delete().where(TimedSetuEntity.id == tse.id).execute()
+        except:
+            pass
+        try:
+            tg.delete_message(user_id, msg["id"])
+        except:
+            pass
+        tg.send_message(user_id, "啊呀，涩图没订阅成功捏")
+
+
+def remove_timed_setu(user_id: int, phase: str):
+    tse = TimedSetuEntity.select().where(TimedSetuEntity.user_id == user_id, TimedSetuEntity.phase == phase).first()
+    if tse is None:
+        tg.send_message(user_id, f"你还没订阅{phase}安涩图")
+        return
+
+    try:
+        remove_job(tse.job_id)
+        TimedSetuEntity.delete().where(TimedSetuEntity.id == tse.id).execute()
+        tg.send_message(user_id, f"{phase}安涩图，取消！")
+    except:
+        tg.send_message(user_id, "派蒙在睡觉，没空帮你取消订阅")
 
 
 @litter.subscribe("tg.callbackquery.receive")
@@ -176,12 +237,22 @@ def handle_callback_query(message: litter.Message):
 @litter.subscribe("tg.message.receive")
 def handle_message(message: litter.Message):
     msg = message.json()
+    text = msg["message"]
     user_id = int(msg["peer_id"]["user_id"])
     logger.info(f"收到来自{user_id}的消息：{msg['message']}")
-    if any(kw in msg["message"] for kw in SETU_KEYWORDS):
-        send_random_setu(user_id)
-    elif "配置" in msg["message"]:
+    if mat := re.match(
+            r"(?P<cancel>取消(订阅)?)?"
+            r"(?P<phase>[早午晚])安(涩图|色图|涩涩|色色|sese|setu)"
+            r"\D*(?P<time_expr>\d{1,2}[：:]\d{2})?",
+            text):
+        if mat.group("cancel"):
+            remove_timed_setu(user_id, mat.group("phase"))
+        else:
+            add_timed_setu(user_id, mat.group("phase"), mat.group("time_expr"))
+    elif "配置" == text:
         send_user_config(user_id)
+    elif any(kw in text for kw in SETU_KEYWORDS):
+        send_random_setu(user_id)
 
 
 @logger.catch
