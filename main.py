@@ -117,6 +117,11 @@ if __name__ == "__main__":
             "src": "tg/",
             "conf": args.agent_config,
         },
+        "schd": {
+            "cmd": [args.python, "schd/schd/agent.py", "-c", args.agent_config],
+            "src": "schd/",
+            "conf": args.agent_config,
+        },
         "pixiv_scraper": {
             "cmd": [args.python, "apps/sesebot/pixiv_scraper.py", "-c", args.agent_config],
             "src": "apps/sesebot/",

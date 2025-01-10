@@ -1,2 +1,2 @@
-apscheduler
+apscheduler[sqlalchemy]
 -e ./litter
