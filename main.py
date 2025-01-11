@@ -95,6 +95,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
     util.init_config(args)
     util.init_loguru_loggers("watchdog/logs")
+    
+    if args.python is None:
+        python_path = subprocess.run(["which", "python"], capture_output=True, text=True).stdout
+    else:
+        python_path = args.python
+
+    assert python_path, f"没有可用的Python解释器"
+    logger.debug(f"Python解释器: {python_path}")
 
     agents = {
         "heartbeat": {
