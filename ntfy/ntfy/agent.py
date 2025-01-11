@@ -3,7 +3,7 @@ import math
 from loguru import logger
 from requests import post
 
-from confctl import config
+from confctl import config, util
 
 __all__ = [
     "listen_litter"
@@ -67,11 +67,6 @@ def listen_litter(bg: bool = False):
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config_path", nargs="?", default="config.json", help="配置文件位置")
-    args = parser.parse_args()
-    config.load_config(args.config_path)
+    util.default_arg_config_loggers("ntfy/logs")
     init()
     listen_litter(bg=False)
