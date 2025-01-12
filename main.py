@@ -96,8 +96,8 @@ if __name__ == "__main__":
     util.init_config(args)
     util.init_loguru_loggers("watchdog/logs")
     
-    if args.python is None:
-        python_path = subprocess.run(["which", "python"], capture_output=True, text=True).stdout
+    if not args.python:
+        python_path = subprocess.run(["which", "python"], capture_output=True, text=True).stdout.strip()
     else:
         python_path = args.python
 
@@ -106,42 +106,42 @@ if __name__ == "__main__":
 
     agents = {
         "heartbeat": {
-            "cmd": [args.python, "heartbeat/heartbeat/server.py", "-c", args.agent_config],
+            "cmd": [python_path, "heartbeat/heartbeat/server.py", "-c", args.agent_config],
             "src": "heartbeat/",
             "conf": args.agent_config,
         },
         "monitor": {
-            "cmd": [args.python, "-m", "litter.monitor", "-c", args.agent_config],
+            "cmd": [python_path, "-m", "litter.monitor", "-c", args.agent_config],
             "src": "litter/litter/monitor",
             "conf": args.agent_config,
         },
         "ntfy": {
-            "cmd": [args.python, "ntfy/ntfy/agent.py", "-c", args.agent_config],
+            "cmd": [python_path, "ntfy/ntfy/agent.py", "-c", args.agent_config],
             "src": "ntfy/",
             "conf": args.agent_config,
         },
         "tg": {
-            "cmd": [args.python, "tg/tg/agent.py", "-c", args.agent_config],
+            "cmd": [python_path, "tg/tg/agent.py", "-c", args.agent_config],
             "src": "tg/",
             "conf": args.agent_config,
         },
         "schd": {
-            "cmd": [args.python, "schd/schd/agent.py", "-c", args.agent_config],
+            "cmd": [python_path, "schd/schd/agent.py", "-c", args.agent_config],
             "src": "schd/",
             "conf": args.agent_config,
         },
         "pixiv_scraper": {
-            "cmd": [args.python, "apps/sesebot/pixiv_scraper.py", "-c", args.agent_config],
+            "cmd": [python_path, "apps/sesebot/pixiv_scraper.py", "-c", args.agent_config],
             "src": "apps/sesebot/",
             "conf": args.agent_config,
         },
         "sesebot": {
-            "cmd": [args.python, "apps/sesebot/bot.py", "-c", args.agent_config],
+            "cmd": [python_path, "apps/sesebot/bot.py", "-c", args.agent_config],
             "src": "apps/sesebot/",
             "conf": args.agent_config,
         },
         "pixiv_fav": {
-            "cmd": [args.python, "-m", "apps.pixiv_fav", "fav", "follow", "-c", args.agent_config],
+            "cmd": [python_path, "-m", "apps.pixiv_fav", "fav", "follow", "-c", args.agent_config],
             "src": "apps/pixiv_fav/",
             "conf": args.agent_config,
         },
