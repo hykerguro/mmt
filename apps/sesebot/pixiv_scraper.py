@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime
 
 import pytz
@@ -21,6 +22,9 @@ papi: PixivWebAPI | None = None
 
 tz = pytz.timezone('Asia/Shanghai')
 
+AI_TAG_PATTERN = re.compile(r'AI[- ]?($|生成|generated|イラスト)', re.IGNORECASE)
+R18_TAG_PATTERN = re.compile(r'R-?18G?|NSFW', re.IGNORECASE)
+
 
 def illust2setudb(illust, phase: str, original_urls, meta) -> tuple[SetuEntity, bool]:
     url = None
@@ -33,12 +37,12 @@ def illust2setudb(illust, phase: str, original_urls, meta) -> tuple[SetuEntity, 
     if url is None:
         illust = papi.illust(illust["id"])
         return illust2setudb(illust, phase, original_urls, meta)
-    if illust["xRestrict"] == 2 or 'R18' in illust["tags"] or 'r18' in illust["tags"]:
+    if illust["xRestrict"] == 2 or any(R18_TAG_PATTERN.match(tag) for tag in illust["tags"]):
         r18 = '2'
     else:
         r18 = illust["xRestrict"]
 
-    if illust["aiType"] == 2 or "ai" in map(lambda s: s.lower(), illust["tags"]):
+    if illust["aiType"] == 2 or any(AI_TAG_PATTERN.match(tag) for tag in illust["tags"]):
         ai_type = '2'
     else:
         ai_type = illust["aiType"]
