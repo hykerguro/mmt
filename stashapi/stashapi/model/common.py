@@ -60,6 +60,8 @@ def to_params(obj) -> str:
         return f'"{obj}"'
     elif isinstance(obj, list):
         return '[' + ",".join(map(to_params, obj)) + ']'
+    elif isinstance(obj, bool):
+        return "true" if obj else "false"
     elif isinstance(obj, (int, float)):
         return str(obj)
     elif isinstance(obj, enum.Enum):

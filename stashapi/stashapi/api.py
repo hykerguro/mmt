@@ -50,12 +50,14 @@ class StashAPI:
         if ret_cls is not None:
             return ret_cls.from_dict(ret[method_name])
         else:
-            return ret
+            return ret[method_name]
 
     @classmethod
     def execute(cls, request_string, **variable_values):
-        logger.debug(f"Request string: {request_string}")
-        return cls.client.execute(gql(request_string), variable_values=variable_values)
+        logger.debug(f"Stash api >>> {request_string}")
+        resp = cls.client.execute(gql(request_string), variable_values=variable_values)
+        logger.debug(f"Stash api <<< {resp}")
+        return resp
 
     @classmethod
     def find_galleries(cls, gallery_filter: GalleryFilterType | None = None, filter: FindFilterType | None = None,

@@ -15,12 +15,20 @@ from loguru import logger
 from stashapi import StashAPI
 from stashapi.model import ScanMetadataInput
 
+def path_proxy(path: str) -> str:
+    path = str(path)
+    for mapper in config.get("stash_scanner/path_mapper", []):
+        host_path, container_path = mapper.split(":")
+        if path.startswith(host_path):
+            path = container_path + path[len(host_path):]
+    return path
 
 # 监测Pixiv下载
 @litter.subscribe(["pixiv_fav.archive_follow.done", "pixiv_fav.archive_fav.done"])
 def on_pixiv_archive_done(message: litter.Message):
     data = message.json()
     local_dir = Path(data["local_dir"])
+
     iids = [x['id'] for x in data["diff_illusts"]]
     logger.info(f"监测到Pixiv归档完毕：{message.channel}，{local_dir=}, {iids=}")
 
@@ -30,7 +38,7 @@ def on_pixiv_archive_done(message: litter.Message):
         (local_dir / str(iid) / ".nogallery").open("wb").close()
 
     scan_id = StashAPI.metadata_scan(ScanMetadataInput(
-        paths=[str(local_dir)], scanGenerateCovers=True, scanGeneratePreviews=True,
+        paths=[str(path_proxy(local_dir))], scanGenerateCovers=True, scanGeneratePreviews=True,
         scanGenerateImagePreviews=True, scanGenerateThumbnails=True, scanGenerateClipPreviews=True))
     logger.info(f"Stash扫描任务开始，任务id={scan_id}")
 
