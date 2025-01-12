@@ -3,27 +3,10 @@ from argparse import ArgumentParser
 from loguru import logger
 
 import litter
-from confctl import config
+from confctl import config, util
 from heartbeat.agent import beat_bg
 from .model import initialize_database
 from ntfy.api import publish as notify
-
-
-def parse_args():
-    parser = ArgumentParser()
-    parser.add_argument('module', type=str, nargs='+', help='模块')
-    parser.add_argument('--once', action='store_true', help='执行一次')
-    parser.add_argument("-c", "--config_path", type=str, nargs="*", default='./config.json', help='配置文件路径')
-    return parser.parse_args()
-
-
-def init_config_and_logger(args):
-    for conf in args.config_path:
-        config.load_config(conf, update=True)
-    for conf in config.get("pixiv_fav/logs", []):
-        print(f"log conf: {conf}")
-        logger.add(**conf)
-    logger.debug(f"配置文件已加载：{config._root_config}")
 
 
 @litter.subscribe("pixiv_fav.archive_fav.done")
@@ -35,9 +18,13 @@ def done_inform(message):
 
 @logger.catch
 def main():
-    args = parse_args()
-
-    init_config_and_logger(args)
+    parser = ArgumentParser()
+    parser.add_argument('module', type=str, nargs='+', help='模块')
+    parser.add_argument('--once', action='store_true', help='执行一次')
+    parser.add_argument("-c", "--config_path", type=str, nargs="*", default='./config.json', help='配置文件路径')
+    args = parser.parse_args()
+    util.init_config(args)
+    util.init_loguru_loggers("pixiv_fav/logs")
 
     initialize_database(config.get("db_url"))
     logger.debug(f"数据库已配置")
