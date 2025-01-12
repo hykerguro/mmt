@@ -33,6 +33,15 @@ def illust2setudb(illust, phase: str, original_urls, meta) -> tuple[SetuEntity, 
     if url is None:
         illust = papi.illust(illust["id"])
         return illust2setudb(illust, phase, original_urls, meta)
+    if illust["xRestrict"] == 2 or 'R18' in illust["tags"] or 'r18' in illust["tags"]:
+        r18 = '2'
+    else:
+        r18 = illust["xRestrict"]
+
+    if illust["aiType"] == 2 or "ai" in map(lambda s: s.lower(), illust["tags"]):
+        ai_type = '2'
+    else:
+        ai_type = illust["aiType"]
 
     return SetuEntity.get_or_create(
         source="pixiv",
@@ -46,9 +55,10 @@ def illust2setudb(illust, phase: str, original_urls, meta) -> tuple[SetuEntity, 
         artist_name=illust["userName"],
         artist_url=f"https://www.pixiv.net/users/{illust['userId']}",
         create_time=datetime.fromisoformat(illust["createDate"]).astimezone(tz),
-        r18=2 if illust["xRestrict"] == 1 else 1,  # 0-不确定；1-不是r18；2-是r18
+        r18=r18,  # 0-不确定；1-不是r18；2-是r18
         sl=illust["sl"],
-        ai_type=illust["aiType"],  # 0-不确定；1-不是AI生成；2-是AI生成
+        ai_type=ai_type,  # 0-不确定；1-不是AI生成；2-是AI生成
+        real='1',
         tags=json.dumps(illust["tags"], ensure_ascii=False),
         meta=meta,
     )
