@@ -37,19 +37,35 @@ class StashAPI:
         return ret_cls.from_dict(ret[method_name])
 
     @classmethod
+    def mutation(cls, method_name: str, params: dict[str, Any], ret_cls: type[_T] | None = None) -> _T:
+        assert params
+        ret_expr = '' if ret_cls is None else ret_cls.to_fields()
+        if ret_cls is not None:
+            assert issubclass(ret_cls, StashObject)
+        ret = cls.execute(
+            "mutation{" + method_name + "(" +
+            ",".join(f"{k}: {to_params(v)}" for k, v in params.items()) +
+            ")" + ret_expr + "}"
+        )
+        if ret_cls is not None:
+            return ret_cls.from_dict(ret[method_name])
+        else:
+            return ret
+
+    @classmethod
     def execute(cls, request_string, **variable_values):
         logger.debug(f"Request string: {request_string}")
         return cls.client.execute(gql(request_string), variable_values=variable_values)
 
     @classmethod
-    def query_find_galleries(cls, gallery_filter: GalleryFilterType | None = None, filter: FindFilterType | None = None,
-                             ids: list[int] | None = None) -> FindGalleriesResultType:
+    def find_galleries(cls, gallery_filter: GalleryFilterType | None = None, filter: FindFilterType | None = None,
+                       ids: list[int] | None = None) -> FindGalleriesResultType:
         return cls.query("findGalleries", dict(gallery_filter=gallery_filter, filter=filter, ids=ids or []),
                          FindGalleriesResultType)
 
     @classmethod
-    def query_find_images(cls, image_filter: ImageFilterType | None = None, filter: FindFilterType | None = None,
-                          image_ids: list[int] | None = None, ids: list[int] | None = None) -> FindImagesResultType:
+    def find_images(cls, image_filter: ImageFilterType | None = None, filter: FindFilterType | None = None,
+                    image_ids: list[int] | None = None, ids: list[int] | None = None) -> FindImagesResultType:
         return cls.query("findImages",
                          dict(image_filter=image_filter, filter=filter, image_ids=image_ids or [], ids=ids or []),
                          FindImagesResultType)
@@ -59,6 +75,9 @@ class StashAPI:
         resp = cls.session.get(url)
         return resp.content
 
+    @classmethod
+    def metadata_scan(cls, input: ScanMetadataInput | None = None) -> str:
+        return cls.mutation("metadataScan", dict(input=input))
 
 try:
     from confctl import config

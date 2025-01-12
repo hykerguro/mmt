@@ -22,14 +22,14 @@ SETU_KEYWORDS: list[str] | None = None
 
 
 def get_random_real() -> tuple[Image, Gallery] | None:
-    galleries = StashAPI.query_find_galleries(
+    galleries = StashAPI.find_galleries(
         GalleryFilterType(tags=HierarchicalMultiCriterionInput(CriterionModifier.INCLUDES, value=[7], depth=0)),
         FindFilterType(per_page=1, sort=f"random_{random.randint(1, 2 << 31)}")
     ).galleries
     if len(galleries) == 0:
         return None
     logger.debug(f"Gallery: {galleries[0]}")
-    images = StashAPI.query_find_images(
+    images = StashAPI.find_images(
         ImageFilterType(galleries=MultiCriterionInput(CriterionModifier.INCLUDES_ALL, value=[galleries[0].id]))).images
     if len(images) == 0:
         return None

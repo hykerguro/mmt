@@ -51,7 +51,7 @@ class LitterJsonEncoder(json.JSONEncoder):
 
 
 def serialize(obj) -> str:
-    return json.dumps(obj, cls=LitterJsonEncoder)
+    return json.dumps(obj, cls=LitterJsonEncoder, ensure_ascii=False)
 
 
 def _obj_hook(d):
