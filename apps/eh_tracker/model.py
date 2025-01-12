@@ -1,10 +1,11 @@
 from peewee import Model, TextField, DatabaseProxy, IntegerField, AutoField
 from playhouse import db_url as _db_url
+from playhouse.shortcuts import ReconnectMixin
 
 db = DatabaseProxy()
 
 
-class BaseModel(Model):
+class BaseModel(Model, ReconnectMixin):
     class Meta:
         database = db
 

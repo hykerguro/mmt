@@ -10,15 +10,11 @@ import litter
 import tg
 from confctl import config, util
 from heartbeat.agent import beat_bg
+from model import SetuEntity, ViewHistoryEntity, initialize_database, UserConfigEntity, TimedSetuEntity
 from pixiv_webapi import PixivWebAPI
+from schd.api import add_job, remove_job
 from stashapi import StashAPI, GalleryFilterType, HierarchicalMultiCriterionInput, CriterionModifier, FindFilterType, \
     ImageFilterType, MultiCriterionInput, Image, Gallery
-
-try:
-    from .model import SetuEntity, ViewHistoryEntity, initialize_database, UserConfigEntity, TimedSetuEntity
-except ImportError:
-    from model import SetuEntity, ViewHistoryEntity, initialize_database, UserConfigEntity, TimedSetuEntity
-from schd.api import add_job, remove_job
 
 papi: PixivWebAPI | None = None
 

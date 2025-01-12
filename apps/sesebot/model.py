@@ -4,11 +4,12 @@ from typing import Any
 
 from peewee import Model, CharField, DateTimeField, TextField, DatabaseProxy, IntegerField, DoesNotExist, fn
 from playhouse import db_url as _db_url
+from playhouse.shortcuts import ReconnectMixin
 
 db = DatabaseProxy()
 
 
-class BaseModel(Model):
+class BaseModel(Model, ReconnectMixin):
     class Meta:
         database = db
 
