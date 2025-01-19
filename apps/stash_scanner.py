@@ -37,13 +37,14 @@ def belonging_gallery(image: Image) -> int | None:
     return None
 
 
-@on("stash.fav.archive", "cron", crontab="* * * * *")
+@on("stash.fav.archive", "cron", crontab=config.get("stash_scanner/fav_archive/crontab", "20 * * * *"))
 def archive(message: litter.Message) -> None:
     """
     定时扫描所有不属于图库的照片，归档到pixiv fav和follow
     :param message:
     :return:
     """
+    logger.info(f"归档 pixiv fav ...")
     belongs = {}
 
     page = 1
@@ -59,6 +60,7 @@ def archive(message: litter.Message) -> None:
             if gallery_id := belonging_gallery(image):
                 belongs.setdefault(gallery_id, []).append(image)
         page += 1
+    logger.info(f"归档图片数量 {sum(map(len, belongs.values()))}")
 
     # do archive
     for gallery_id, images in belongs.items():
@@ -68,7 +70,7 @@ def archive(message: litter.Message) -> None:
         logger.info(f"{len(images)}张图片添加到图库{gallery_id}")
 
 
-# 监测Pixiv下载
+# 监测Pixiv下载扫描
 @litter.subscribe(["pixiv_fav.archive_follow.done", "pixiv_fav.archive_fav.done"])
 def on_pixiv_archive_done(message: litter.Message):
     """
@@ -88,8 +90,6 @@ def on_pixiv_archive_done(message: litter.Message):
         logger.info(f"无新增")
         return
 
-    if not (local_dir / '.forcegallery').exists():
-        (local_dir / '.forcegallery').open("wb").close()
     for iid in iids:
         (local_dir / str(iid) / ".nogallery").open("wb").close()
 
@@ -99,16 +99,16 @@ def on_pixiv_archive_done(message: litter.Message):
     logger.info(f"Stash扫描任务开始，任务id={scan_id}")
 
 
-# 定时扫描
-crontab = config.get("stash_scanner/period_scan/crontab", None)
-if crontab:
-    @on("stash.scanner.period.scan", "cron", crontab=crontab, replace_existing=True, id="stash_scanner.period")
-    def period_scan(message: litter.Message):
-        scan_id = StashAPI.metadata_scan(ScanMetadataInput(
-            scanGenerateCovers=True, scanGeneratePreviews=True,
-            scanGenerateImagePreviews=True, scanGenerateThumbnails=True, scanGenerateClipPreviews=True,
-            scanGeneratePhashes=True, scanGenerateSprites=True
-        ))
-        logger.info(f"Stash Scanner 定时扫描：{scan_id=}")
+# 定时全库扫描
+@on("stash.scanner.period.scan", "cron", crontab=config.get("stash_scanner/period_scan/crontab", "0 6 * * *"))
+def period_scan(message: litter.Message):
+    scan_id = StashAPI.metadata_scan(ScanMetadataInput(
+        scanGenerateCovers=True, scanGeneratePreviews=True,
+        scanGenerateImagePreviews=True, scanGenerateThumbnails=True, scanGenerateClipPreviews=True,
+        scanGeneratePhashes=True, scanGenerateSprites=True
+    ))
+    logger.info(f"Stash Scanner 定时扫描：{scan_id=}")
 
+
+logger.info(f"stash scanner 开始监听")
 litter.listen(config.get("redis/host"), config.get("redis/port"), APP_NAME)
