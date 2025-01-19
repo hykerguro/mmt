@@ -1,5 +1,5 @@
 from traceback import print_exc
-from typing import TypeVar, Any
+from typing import TypeVar, Any, Iterator
 
 import requests
 from gql import Client, gql
@@ -26,37 +26,62 @@ class StashAPI:
         ), fetch_schema_from_transport=True)
 
     @classmethod
+    @staticmethod
+    def build_param_string(params: dict[str, Any]) -> str:
+        if params:
+            return "(" + ",".join(f"{k}: {to_params(v)}" for k, v in params.items()) + ")"
+        else:
+            return ""
+
+    @classmethod
     def query(cls, method_name: str, params: dict[str, Any], ret_cls: type[_T]) -> _T:
-        assert params
-        assert issubclass(ret_cls, StashObject)
         ret = cls.execute(
-            "query{" + method_name + "(" +
-            ",".join(f"{k}: {to_params(v)}" for k, v in params.items()) +
-            ")" + ret_cls.to_fields() + "}"
+            "query{" + method_name + cls.build_param_string(params) + ret_cls.to_fields() + "}"
         )
         return ret_cls.from_dict(ret[method_name])
 
     @classmethod
-    def mutation(cls, method_name: str, params: dict[str, Any], ret_cls: type[_T] | None = None) -> _T:
-        assert params
-        ret_expr = '' if ret_cls is None else ret_cls.to_fields()
+    def mutation(cls, method_name: str, params: dict[str, Any], ret_cls: type[_T]) -> _T:
+        is_list = False
         if ret_cls is not None:
-            assert issubclass(ret_cls, StashObject)
+            t, sub = get_origin_type(ret_cls)
+            if t is list:
+                ret_cls = sub
+                is_list = True
+
         ret = cls.execute(
-            "mutation{" + method_name + "(" +
-            ",".join(f"{k}: {to_params(v)}" for k, v in params.items()) +
-            ")" + ret_expr + "}"
+            "mutation{" + method_name + cls.build_param_string(params) + to_fields(ret_cls) + "}"
         )
-        if ret_cls is not None:
-            return ret_cls.from_dict(ret[method_name])
-        else:
+
+        if ret_cls is None:
             return ret[method_name]
+
+        return list(map(lambda x: from_dict(ret_cls, x), ret[method_name])) if is_list \
+            else from_dict(ret_cls, ret[method_name])
+
+    @classmethod
+    def subscription(cls, method_name: str, params: dict[str, Any], ret_cls: type[_T]) -> Iterator[_T]:
+        is_list = False
+        if ret_cls is not None:
+            t, sub = get_origin_type(ret_cls)
+            if t is list:
+                ret_cls = sub
+                is_list = True
+
+        for ret in cls.client.subscribe(gql(
+                "subscription{" + method_name + cls.build_param_string(params) + to_fields(ret_cls) + "}"
+        )):
+            if ret_cls is None:
+                yield ret[method_name]
+
+            yield list(map(lambda x: from_dict(ret_cls, x), ret[method_name])) if is_list \
+                else from_dict(ret_cls, ret[method_name])
 
     @classmethod
     def execute(cls, request_string, **variable_values):
-        logger.debug(f"Stash api >>> {request_string}")
+        logger.trace(f"Stash api >>> {request_string}")
         resp = cls.client.execute(gql(request_string), variable_values=variable_values)
-        logger.debug(f"Stash api <<< {resp}")
+        logger.trace(f"Stash api <<< {resp}")
         return resp
 
     @classmethod
@@ -79,7 +104,15 @@ class StashAPI:
 
     @classmethod
     def metadata_scan(cls, input: ScanMetadataInput | None = None) -> str:
-        return cls.mutation("metadataScan", dict(input=input))
+        return cls.mutation("metadataScan", dict(input=input), ret_cls=str)
+
+    @classmethod
+    def bulk_image_update(cls, input: BulkImageUpdateInput) -> list[Image]:
+        return cls.mutation("bulkImageUpdate", dict(input=input), ret_cls=list[Image])
+
+    @classmethod
+    def scan_complete_subscribe(cls) -> Iterator[bool]:
+        return cls.subscription("scanCompleteSubscribe", dict(), bool)
 
 try:
     from confctl import config

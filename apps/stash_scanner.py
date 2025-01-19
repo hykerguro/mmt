@@ -10,12 +10,18 @@ from confctl import config, util
 util.default_arg_config_loggers("stash_scanner/logs")
 
 import litter
+
+litter.connect(config.get("redis/host"), config.get("redis/port"), APP_NAME)
+
 from loguru import logger
 
-from stashapi import StashAPI
+from stashapi import StashAPI, ImageFilterType, MultiCriterionInput, CriterionModifier, FindFilterType, \
+    SortDirectionEnum, Image, BulkImageUpdateInput, BulkUpdateIds, BulkUpdateIdMode
 from stashapi.model import ScanMetadataInput
+from schd.api import on
 
-def path_proxy(path: str) -> str:
+
+def path_proxy(path: str | Path) -> str:
     path = str(path)
     for mapper in config.get("stash_scanner/path_mapper", []):
         host_path, container_path = mapper.split(":")
@@ -23,14 +29,64 @@ def path_proxy(path: str) -> str:
             path = container_path + path[len(host_path):]
     return path
 
+
+def belonging_gallery(image: Image) -> int | None:
+    for path, gallery_id in map(lambda x: x.split(":"), config.get("stash_scanner/archive", [])):
+        if image.visual_files[0].path.startswith(path):
+            return gallery_id
+    return None
+
+
+@on("stash.fav.archive", "cron", crontab="* * * * *")
+def archive(message: litter.Message) -> None:
+    """
+    定时扫描所有不属于图库的照片，归档到pixiv fav和follow
+    :param message:
+    :return:
+    """
+    belongs = {}
+
+    page = 1
+    while True:
+        resp = StashAPI.find_images(
+            image_filter=ImageFilterType(galleries=MultiCriterionInput(modifier=CriterionModifier.IS_NULL)),
+            filter=FindFilterType(per_page=1000, page=page, sort="updated_at", direction=SortDirectionEnum.DESC)
+        )
+        if not resp.images:
+            break
+
+        for image in resp.images:
+            if gallery_id := belonging_gallery(image):
+                belongs.setdefault(gallery_id, []).append(image)
+        page += 1
+
+    # do archive
+    for gallery_id, images in belongs.items():
+        StashAPI.bulk_image_update(
+            BulkImageUpdateInput(gallery_ids=BulkUpdateIds(mode=BulkUpdateIdMode.ADD, ids=[gallery_id]),
+                                 ids=[image.id for image in images]))
+        logger.info(f"{len(images)}张图片添加到图库{gallery_id}")
+
+
 # 监测Pixiv下载
 @litter.subscribe(["pixiv_fav.archive_follow.done", "pixiv_fav.archive_fav.done"])
 def on_pixiv_archive_done(message: litter.Message):
+    """
+    pixiv fav 结束后扫描stash照片
+    :param message:
+    :return:
+    """
+    logger.debug(f"on_pixiv_archive_done: {message}")
+
     data = message.json()
     local_dir = Path(data["local_dir"])
 
     iids = [x['id'] for x in data["diff_illusts"]]
-    logger.info(f"监测到Pixiv归档完毕：{message.channel}，{local_dir=}, {iids=}")
+    if iids:
+        logger.info(f"监测到Pixiv归档完毕：{message.channel}，{local_dir=}, {iids=}")
+    else:
+        logger.info(f"无新增")
+        return
 
     if not (local_dir / '.forcegallery').exists():
         (local_dir / '.forcegallery').open("wb").close()
@@ -46,15 +102,7 @@ def on_pixiv_archive_done(message: litter.Message):
 # 定时扫描
 crontab = config.get("stash_scanner/period_scan/crontab", None)
 if crontab:
-    litter.connect(config.get("redis/host"), config.get("redis/port"), APP_NAME)
-    from schd.api import add_job
-
-    job_id = add_job("stash.scanner.period.scan", None, "cron", crontab=crontab, replace_existing=True,
-                     id="stash_scanner.period")
-    logger.info(f"添加Stash定时扫描任务：{crontab=}, {job_id=}")
-
-
-    @litter.subscribe("stash.scanner.period.scan")
+    @on("stash.scanner.period.scan", "cron", crontab=crontab, replace_existing=True, id="stash_scanner.period")
     def period_scan(message: litter.Message):
         scan_id = StashAPI.metadata_scan(ScanMetadataInput(
             scanGenerateCovers=True, scanGeneratePreviews=True,

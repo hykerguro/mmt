@@ -1,3 +1,4 @@
+import enum
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
@@ -55,6 +56,56 @@ class ImagePathsType(StashObject):
 
 
 @dataclass
+class Fingerprint(StashObject):
+    type: str
+    value: str
+
+
+@dataclass
+class ImageFile(StashObject):
+    height: int
+    width: int
+    basename: str
+    created_at: datetime
+    fingerprints: list[Fingerprint]
+    id: int
+    mod_time: datetime
+    parent_folder_id: int
+    path: str
+    size: int
+    updated_at: datetime
+    # fingerprint: Optional[str] = field(default=None)
+    zip_file_id: Optional[int] = field(default=None)
+
+
+@dataclass
+class VideoFile(StashObject):
+    audio_codec: str
+    bit_rate: int
+    duration: float
+    format: str
+    frame_rate: float
+    height: int
+    video_codec: str
+    width: int
+    basename: str
+    created_at: datetime
+    fingerprints: list[Fingerprint]
+    id: int
+    mod_time: datetime
+    parent_folder_id: int
+    path: str
+    size: int
+    updated_at: datetime
+    # fingerprint: Optional[str] = field(default=None)
+    zip_file_id: Optional[int] = field(default=None)
+
+
+class VisualFilePlaceholder(Placeholder):
+    param_expression = " {... on ImageFile{id, path} ... on VideoFile{id,path}}"
+
+
+@dataclass
 class Image(StashObject):
     created_at: datetime
     # files: list["ImageFile"]  # deprecation_reason: Use visual_files
@@ -66,7 +117,7 @@ class Image(StashObject):
     tags: list[IDAndNamePlaceholder]
     updated_at: datetime
     urls: list[str]
-    # visual_files: list[IDPlaceholder]
+    visual_files: list[VideoFile | ImageFile]
     code: Optional[str] = field(default=None)
     date: Optional[str] = field(default=None)
     details: Optional[str] = field(default=None)
@@ -86,3 +137,40 @@ class FindImagesResultType(StashObject):
     images: list[Image]
     # Total megapixels of the images
     megapixels: float
+
+
+class BulkUpdateIdMode(enum.Enum):
+    SET = "SET"
+    ADD = "ADD"
+    REMOVE = "REMOVE"
+
+
+@dataclass
+class BulkUpdateStrings(StashObject):
+    mode: BulkUpdateIdMode
+    values: list[str] = field(default_factory=list)
+
+
+@dataclass
+class BulkUpdateIds(StashObject):
+    mode: BulkUpdateIdMode
+    ids: list[int] = field(default_factory=list)
+
+
+@dataclass
+class BulkImageUpdateInput(StashObject):
+    clientMutationId: Optional[str] = field(default=None)
+    ids: Optional[list[int]] = field(default=None)
+    title: Optional[str] = field(default=None)
+    code: Optional[str] = field(default=None)
+    rating100: Optional[int] = field(default=None)
+    organized: Optional[bool] = field(default=None)
+    url: Optional[str] = field(default=None)
+    urls: Optional[BulkUpdateStrings] = field(default=None)
+    date: Optional[str] = field(default=None)
+    details: Optional[str] = field(default=None)
+    photographer: Optional[str] = field(default=None)
+    studio_id: Optional[int] = field(default=None)
+    performer_ids: Optional[BulkUpdateIds] = field(default=None)
+    tag_ids: Optional[BulkUpdateIds] = field(default=None)
+    gallery_ids: Optional[BulkUpdateIds] = field(default=None)

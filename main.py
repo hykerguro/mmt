@@ -145,5 +145,10 @@ if __name__ == "__main__":
             "src": "apps/pixiv_fav/",
             "conf": args.agent_config,
         },
+        "stash_scanner": {
+            "cmd": [python_path, "-m", "apps.stash_scanner", "-c", args.agent_config],
+            "src": "apps",
+            "conf": args.agent_config,
+        },
     }
     monitor_and_restart(agents)

@@ -29,6 +29,7 @@ def add_job(message: litter.Message):
         trigger = CronTrigger.from_crontab(params.pop("crontab"))
     job = scheduler.add_job(_publish, kwargs=dict(channel=channel, body=body), trigger=trigger, **params)
     litter.publish("schd.add_job.done", job.id)
+    logger.info(f"Added job {job.id}: {trigger=}")
     return job.id
 
 
@@ -40,8 +41,10 @@ def remove_job(message: litter.Message):
         "job_id": str
     }
     """
-    scheduler.remove_job(params["job_id"])
-    litter.publish("schd.remove_job.done", params["job_id"])
+    job_id = params.pop("job_id")
+    scheduler.remove_job(job_id)
+    litter.publish("schd.remove_job.done", job_id)
+    logger.info(f"Removed job {job_id}")
 
 
 def main():

@@ -59,6 +59,15 @@ def connect(host: str, port: int | str, app_name: str | None = None):
         pass
 
 
+def disconnect() -> None:
+    global _redis_client
+    if _redis_client is not None:
+        _redis_client.close()
+        _redis_client = None
+        logger.info("Redis disconnected")
+    else:
+        logger.warning("Redis client either not inited or already disconnected")
+
 def subscribe(pattern: str | Collection[str], func: Callable[[Message], Message | None] | None = None):
     if func is not None:
         global _register_map

@@ -6,11 +6,13 @@ __all__ = [
     "to_fields",
     "to_params",
     "from_dict",
+    "get_origin_type",
     "StashObject",
     "IDPlaceholder",
     "IDAndNamePlaceholder",
     "SortDirectionEnum",
-    "FindFilterType"
+    "FindFilterType",
+    "Placeholder"
 ]
 
 
@@ -24,25 +26,33 @@ def get_origin_type(t) -> tuple[type, type | None]:
     return t, None
 
 
-def to_fields(f) -> str:
-    if hasattr(f, "__origin__") and issubclass(f.__origin__, Sequence) \
-            and hasattr(f, "__args__") and len(f.__args__) == 1:
-        f = f.__args__[0]
-    if f is IDPlaceholder:
-        return "{id}"
-    elif f is IDAndNamePlaceholder:
-        return "{id,name}"
+import types
+
+
+def to_fields(f: type) -> str:
+    if f is None:
+        return ""
+
+    # wrapped type
+    if (isinstance(f, types.UnionType)
+            or (hasattr(f, "__origin__") and repr(f.__origin__).startswith(("typing.Union", "typing.Optional")))):
+        valid_types = [x for x in f.__args__ if x is not type(None)]
+        if len(valid_types) == 1:
+            return to_fields(valid_types[0])
+        else:
+            return ('{__typename, ' + ' '.join(
+                "... on {}{}".format(sub_type.__name__, to_fields(sub_type)) for sub_type in valid_types)
+                    + '}')
+
+    if hasattr(f, "__origin__") and hasattr(f, "__args__") and issubclass(f.__origin__, Sequence):
+        return to_fields(f.__args__[0])
+
+    if issubclass(f, Placeholder):
+        return f.param_expression
     elif issubclass(f, StashObject):
-        res = []
-        for attr, t in vars(f)["__annotations__"].items():
-            if attr.startswith("_"):
-                continue
-            f_type = t
-            if hasattr(t, "__origin__") and repr(t.__origin__).startswith("typing.Union") \
-                    and hasattr(t, "__args__") and len(t.__args__) == 2:
-                f_type = t.__args__[0]
-            res.append(f"{attr}{to_fields(f_type)}")
-        return '{' + ','.join(res) + '}'
+        return ('{' + ','.join(
+            f"{attr}{to_fields(t)}" for attr, t in vars(f)["__annotations__"].items() if
+            not attr.startswith('_')) + '}')
     else:
         return ""
 
@@ -72,6 +82,14 @@ def to_params(obj) -> str:
 
 def from_dict(cls, data):
     f_type, sub_type = get_origin_type(cls)
+
+    # A | B
+    if (isinstance(f_type, types.UnionType)
+            or (hasattr(f_type, "__origin__") and repr(f_type.__origin__).startswith(
+                ("typing.Union", "typing.Optional")))):
+        name_type_map = {x.__name__: x for x in f_type.__args__ if x is not type(None)}
+        return from_dict(name_type_map[data["__typename"]], data)
+
     if issubclass(f_type, StashObject):
         args = {}
         for attr, t in vars(cls)["__annotations__"].items():
@@ -99,13 +117,16 @@ class StashObject:
         return from_dict(cls, data)
 
 
-class IDPlaceholder(dict):
-    pass
+class Placeholder(dict):
+    param_expression: str
 
 
-# TODO: Placeholder["id", "name"]
-class IDAndNamePlaceholder(dict):
-    pass
+class IDPlaceholder(Placeholder):
+    param_expression = "{id}"
+
+
+class IDAndNamePlaceholder(Placeholder):
+    param_expression = "{id,name}"
 
 
 class SortDirectionEnum(enum.Enum):

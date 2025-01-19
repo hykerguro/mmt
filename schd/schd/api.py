@@ -1,3 +1,4 @@
+import functools
 from typing import Any
 
 import litter
@@ -30,3 +31,15 @@ def remove_job(job_id: str) -> None:
     })
     if not resp.success:
         raise litter.RemoteFunctionRaisedException(resp)
+
+
+def on(channel: str, trigger: str, **kwargs):
+    kwargs["replace_existing"] = True
+    kwargs["id"] = kwargs.get("id", "schd_" + channel)
+
+    def _decorator(func):
+        litter.subscribe(channel, func)
+        add_job(channel, {}, trigger, **kwargs)
+        return functools.wraps(func)(add_job)
+
+    return _decorator
