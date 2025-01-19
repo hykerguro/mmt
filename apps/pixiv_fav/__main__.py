@@ -4,63 +4,49 @@ from loguru import logger
 
 import litter
 from confctl import config, util
-from heartbeat.agent import beat_bg
 from .model import initialize_database
-from ntfy.api import publish as notify
 
+parser = ArgumentParser()
+parser.add_argument('module', type=str, nargs='+', help='模块')
+parser.add_argument('--once', action='store_true', help='执行一次')
+parser.add_argument("-c", "--config_path", type=str, nargs="*", default='./config.json', help='配置文件路径')
+args = parser.parse_args()
+util.init_config(args)
+util.init_loguru_loggers("pixiv_fav/logs")
 
-@litter.subscribe("pixiv_fav.archive_fav.done")
-def done_inform(message):
-    data = message.json()
-    lines = [(f'{ill["title"]}\n\ttags: ' + ','.join(ill["tags"])) for ill in data["diff_illusts"]]
-    notify(topic="mmt_done", message='\n'.join(lines), title=message.channel, tags=["done"])
+initialize_database(config.get("db_url"))
+logger.debug(f"数据库已配置")
 
+host, port = config.get("redis/host"), config.get("redis/port")
+litter.connect(host, port, "pixiv_fav")
 
-@logger.catch
-def main():
-    parser = ArgumentParser()
-    parser.add_argument('module', type=str, nargs='+', help='模块')
-    parser.add_argument('--once', action='store_true', help='执行一次')
-    parser.add_argument("-c", "--config_path", type=str, nargs="*", default='./config.json', help='配置文件路径')
-    args = parser.parse_args()
-    util.init_config(args)
-    util.init_loguru_loggers("pixiv_fav/logs")
+logger.debug(f"ntfy通知已配置")
 
-    initialize_database(config.get("db_url"))
-    logger.debug(f"数据库已配置")
+from .archiver import PixivFavArchiver
 
-    host, port = config.get("redis/host"), config.get("redis/port")
-    litter.connect(host, port, "pixiv_fav")
+if args.once:
+    logger.info("只执行一次")
+    if "fav" in args.module:
+        PixivFavArchiver().archive_fav()
+    if "follow" in args.module:
+        PixivFavArchiver().archive_follow()
+    exit(0)
 
-    logger.debug(f"ntfy通知已配置")
+from schd.api import add_job
+from . import agent
 
-    from .archiver import PixivFavArchiver
+cron_expr = config.get("pixiv_fav/cron")
 
-    if args.once:
-        logger.info("只执行一次")
-        if "fav" in args.module:
-            PixivFavArchiver().archive_fav()
-        if "follow" in args.module:
-            PixivFavArchiver().archive_follow()
-    else:
-        from apscheduler.schedulers.blocking import BlockingScheduler
-        from apscheduler.triggers.cron import CronTrigger
+if "fav" in args.module:
+    add_job("pixiv_fav.archive.fav", {}, "cron", crontab=cron_expr, replace_existing=True,
+            id="pixiv_fav.archive.fav")
+if "follow" in args.module:
+    add_job("pixiv_fav.archive.follow", {}, "cron", crontab=cron_expr, replace_existing=True,
+            id="pixiv_fav.archive.follow")
 
-        cron_expr = config.get("pixiv_fav/cron")
-        scheduler = BlockingScheduler()
-        if "fav" in args.module:
-            scheduler.add_job(
-                PixivFavArchiver().archive_fav,
-                CronTrigger.from_crontab(cron_expr),
-            )
-        if "follow" in args.module:
-            scheduler.add_job(
-                PixivFavArchiver().archive_follow,
-                CronTrigger.from_crontab(cron_expr),
-            )
-        logger.info(f"定时执行：{cron_expr}")
-        beat_bg()
-        scheduler.start()
+logger.info(f"定时执行：{cron_expr}")
 
+from heartbeat.agent import beat_bg
 
-main()
+beat_bg()
+agent.serve(host, port)

@@ -8,7 +8,10 @@ from confctl import util, config
 
 scheduler: BlockingScheduler | None = None
 
-_publish = litter.publish
+
+def _publish(*args, **kwargs):
+    logger.info(f"Job executed: {args}, {kwargs}")
+    litter.publish(*args, **kwargs)
 
 
 @litter.subscribe("schd.add_job")
@@ -45,6 +48,11 @@ def remove_job(message: litter.Message):
     scheduler.remove_job(job_id)
     litter.publish("schd.remove_job.done", job_id)
     logger.info(f"Removed job {job_id}")
+
+
+@litter.subscribe("schd.list_jobs")
+def list_jobs(message: litter.Message):
+    return list(map(str, scheduler.get_jobs()))
 
 
 def main():
