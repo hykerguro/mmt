@@ -84,11 +84,11 @@ class PixivWebAPI:
         return self._request(method="POST", endpoint=endpoint, data=data, **kwargs)
 
     def user_bookmarks(self, user_id: int | None = None, tag: str = "", offset: int = 0,
-                       limit: int = 48) -> Json | None:
+                       limit: int = 48, rest: Literal["show", "hide"] = "show") -> Json | None:
         if user_id is None:
             user_id = self.user_id
         return self.get(f"user/{user_id}/illusts/bookmarks",
-                        params={"tag": tag, "offset": offset, "limit": limit, "rest": "show"})
+                        params={"tag": tag, "offset": offset, "limit": limit, "rest": rest})
 
     def illust(self, illust_id: int) -> Json | None:
         return self.get(f"illust/{illust_id}")
