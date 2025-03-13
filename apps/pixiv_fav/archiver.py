@@ -8,8 +8,8 @@ from loguru import logger
 from peewee import fn
 
 from confctl import config
-from .model import BookmarkWork, FollowWork
 from pixiv_webapi import PixivWebAPI, PixivWebAPIException
+from .model import BookmarkWork, FollowWork
 
 _lp = lambda *_args, **_kwargs: None
 try:
@@ -143,7 +143,7 @@ class PixivFavArchiver:
         # 获取图片链接
         pages: list[dict] = self.papi.illust_pages(illust_id)
         urls = [page["urls"]["original"] for page in pages]
-        pwidth = math.ceil(math.log10(len(urls) + 1))
+        pwidth = math.ceil(math.log10(len(urls)))
 
         # 下载图片
         folder.mkdir(exist_ok=True, parents=True)
