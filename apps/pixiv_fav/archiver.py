@@ -147,14 +147,19 @@ class PixivFavArchiver:
 
         # 下载图片
         folder.mkdir(exist_ok=True, parents=True)
-        for i, url in enumerate(urls):
-            filepath = (folder / f"{illust_id}_p{str(i).rjust(pwidth, '0')}.{url.rsplit('.')[-1]}")
-            self.papi.download(url, filepath)
+        if "ugoira" in urls[0]:
+            filepath = (folder / f"{illust_id}.gif")
+            ugoira_meta = self.papi.ugoira_meta(illust_id)
+            self.papi.download(ugoira_meta["originalSrc"], filepath, frames=ugoira_meta["frames"])
+        else:
+            for i, url in enumerate(urls):
+                filepath = (folder / f"{illust_id}_p{str(i).rjust(pwidth, '0')}.{url.rsplit('.')[-1]}")
+                self.papi.download(url, filepath)
 
-            # 速度控制
-            if i <= len(urls) - 1 and (s := config.get("pixiv_fav/sleep", 0)) > 0:
-                logger.debug(f"休息 {s:.2f} 秒")
-                time.sleep(s)
+                # 速度控制
+                if i <= len(urls) - 1 and (s := config.get("pixiv_fav/sleep", 0)) > 0:
+                    logger.debug(f"休息 {s:.2f} 秒")
+                    time.sleep(s)
 
         # 保存meta
         if meta or meta_info is not None:

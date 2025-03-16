@@ -1,8 +1,12 @@
+import io
+import re
+import zipfile
 from pathlib import Path
 from time import sleep, time
 from typing import TypeAlias, Any, Literal
 
 import requests
+from PIL import Image
 from loguru import logger
 
 __all__ = [
@@ -91,6 +95,11 @@ class PixivWebAPI:
                         params={"tag": tag, "offset": offset, "limit": limit, "rest": rest})
 
     def illust(self, illust_id: int) -> Json | None:
+        """
+        illustType: 0-普通；1-漫画；2-ugoira
+        :param illust_id:
+        :return:
+        """
         return self.get(f"illust/{illust_id}")
 
     def illust_pages(self, illust_id: int | str) -> list[Json] | None:
@@ -101,7 +110,11 @@ class PixivWebAPI:
             user_id = self.user_id
         return self.get(f"user/{user_id}", headers={"Referer": f"https://www.pixiv.net/member.php?id={user_id}"})
 
-    def download(self, url: str, path: str | Path, max_retries: int = 3, timeout: float = 10.):
+    def ugoira_meta(self, illust_id: int | str) -> Json | None:
+        return self.get(f"illust/{illust_id}/ugoira_meta")
+
+    def download(self, url: str, path: str | Path, max_retries: int = 3, timeout: float = 10.,
+                 *, frames: list[dict[str, Any]] | None = None):
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         fail_reason = []
@@ -109,18 +122,36 @@ class PixivWebAPI:
             try:
                 response = self.session.get(url, stream=True, timeout=timeout,
                                             headers={"Referer": "https://www.pixiv.net/"})
-                if response.status_code == 200:
+                if response.status_code != 200:
+                    logger.error(f"图片 {url} 下载失败，状态码: {response.status_code}")
+                    fail_reason.append(f"Status Code: {response.status_code}")
+
+                if (mat := re.match(r".+(?P<iid>\d+)_ugoira.+\.zip$", url)) is not None:
+                    iid = mat.group("iid")
+                    zip_buffer = io.BytesIO(response.content)
+
+                    if path.suffix == ".gif":
+                        if frames is None:
+                            frames = self.ugoira_meta(iid)["frames"]
+                        logger.debug("开始转换ugoira为gif")
+                        with zipfile.ZipFile(zip_buffer, 'r') as zip_file:
+                            images = [Image.open(io.BytesIO(zip_file.read(frame["file"]))) for frame in frames]
+                            durations = [frame["delay"] for frame in frames]
+                            images[0].save(path, save_all=True, append_images=images[1:], duration=durations, loop=0)
+                    else:
+                        with open(path, "wb") as f:
+                            f.write(zip_buffer.getvalue())
+                else:
                     with open(path, "wb") as f:
                         chunk_size = 1024 * 1024  # 1 MB
                         for chunk in response.iter_content(chunk_size=chunk_size):
                             if chunk:
                                 f.write(chunk)
-                    logger.info(f"图片 {url} 已成功下载并保存为 {path}")
-                    _lp("pixiv_webapi.download.success", {"url": url, "path": path})
-                    return
-                else:
-                    logger.error(f"图片 {url} 下载失败，状态码: {response.status_code}")
-                    fail_reason.append(f"Status Code: {response.status_code}")
+
+                logger.info(f"图片 {url} 已成功下载并保存为 {path}")
+                _lp("pixiv_webapi.download.success", {"url": url, "path": path})
+                return
+
             except requests.exceptions.RequestException as e:
                 logger.warning(f"图片 {url} 下载出错：{e}，重试次数: {attempt + 1}/{max_retries}")
                 fail_reason.append(f"Error: {e}")
