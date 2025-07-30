@@ -2,15 +2,16 @@ import json
 import unittest
 from unittest.mock import patch, Mock
 
+import litter
+from agents.pixiv import PixivWebAPI, PixivWebAPIException, api
 from confctl import config
-from pixiv_webapi.webapi import PixivWebAPI, PixivWebAPIException
 
 
 class TestPixivWebAPI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        config.load_config("../config/pixiv_fav.yaml")
-        cls.papi = PixivWebAPI(config.get("token"))
+        config.load_config("config/dev.yaml")
+        cls.papi = PixivWebAPI(config.get("pixiv_webapi/token"))
 
     @patch('requests.Session.get')
     def test_illust(self, mock_get):
@@ -86,9 +87,12 @@ class TestPixivWebAPI(unittest.TestCase):
 
     def test_follow_latest_illust(self):
         ret = self.papi.follow_latest_illust()
-        with open("../assets/pixiv_webapi_json/follow_latest_illust.json", 'w', encoding='utf8') as f:
+        with open("assets/pixiv_webapi_json/follow_latest_illust.json", 'w', encoding='utf8') as f:
             json.dump(ret, f, ensure_ascii=False, indent=4)
 
+    def test_api(self):
+        litter.connect("127.0.0.1", 56379)
+        print(api.top_illust())
 
 if __name__ == '__main__':
     unittest.main()

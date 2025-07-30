@@ -1,0 +1,6 @@
+redis
+loguru
+peewee
+PyYAML
+requests
+pytz

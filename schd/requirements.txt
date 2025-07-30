@@ -1,4 +1,0 @@
-apscheduler[sqlalchemy]
-pytz
-mysqlclient
--e ./litter

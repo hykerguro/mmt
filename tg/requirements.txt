@@ -1,4 +1,0 @@
-telethon
-loguru
--e ./confctl
--e ./litter
