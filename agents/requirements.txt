@@ -1,0 +1,8 @@
+mmt-core
+requests
+loguru
+bs4
+tqdm
+pillow
+gql
+telethon
