@@ -6,7 +6,7 @@ from typing import Any
 
 from loguru import logger
 from peewee import fn
-from pixiv_webapi import PixivWebAPI, PixivWebAPIException
+from mmt.agents.pixiv.webapi import PixivWebAPI, PixivWebAPIException
 
 from confctl import config
 from .model import BookmarkWork, FollowWork

@@ -178,12 +178,11 @@ def run_http():
 
 
 def run_https():
-    app.run(host='0.0.0.0', port=HTTPS_PORT, ssl_context=('devhost+1.pem', 'devhost+1-key.pem'))  # 使用 SSL 证书
+    app.run(host='0.0.0.0', port=HTTPS_PORT, ssl_context=tuple(config.get("random_image_server/https/ssl_context")))  # 使用 SSL 证书
 
-
-if __name__ == '__main__':
+def main():
     from threading import Thread
-
+    
     Thread(target=run_http).start()
-    if os.getenv("ENABLE_HTTPS") == 'TRUE':
+    if config.get("random_image_server/https/enabled", False):
         Thread(target=run_https).start()

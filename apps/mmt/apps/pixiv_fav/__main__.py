@@ -32,7 +32,7 @@ if args.once:
         PixivFavArchiver().archive_follow()
     exit(0)
 
-from schd.api import add_job
+from mmt.tools.schd.api import add_job
 from . import agent
 
 cron_expr = config.get("pixiv_fav/cron")
@@ -46,7 +46,4 @@ if "follow" in args.module:
 
 logger.info(f"定时执行：{cron_expr}")
 
-from heartbeat.agent import beat_bg
-
-beat_bg()
 agent.serve(host, port)
