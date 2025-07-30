@@ -115,14 +115,12 @@ def request(channel: str, body, *, headers: dict[str, Any] | None = None, timeou
     headers["litter-response-queue"] = response_queue
     publish(channel, body, headers=headers)
 
-    try:
-        _, resp = _redis_client.brpop([response_queue], timeout=timeout)
-    except:
-        traceback.print_exc()
+    result = _redis_client.brpop([response_queue], timeout=timeout)
+    if result is None:
         publish(f"{channel}:timeout", body, headers=headers)
         raise RequestTimeoutException()
 
-    return Response.from_redis_response(resp)
+    return Response.from_redis_response(result[1])
 
 
 def iter_request(channel: str, body, *, headers: dict[str, Any] | None = None, timeout: int = 5,
