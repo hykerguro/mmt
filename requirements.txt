@@ -1,0 +1,5 @@
+-e ./core
+-e ./agents
+-e ./apps
+-e ./tools
+-e ./rss
