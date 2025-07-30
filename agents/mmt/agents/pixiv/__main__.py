@@ -8,7 +8,7 @@ adapt(
     PixivWebAPI(config.get("pixiv_webapi/token")),
     APP_NAME,
     APP_NAME,
-    host="127.0.0.1",
-    port=56379,
+    host=config.get("redis/host"),
+    port=config.get("redis/port"),
     bg=False
 )
