@@ -37,6 +37,9 @@ while (data := input(">>> ").strip()) != "exit":
     if mode == "P":
         litter.publish(channel, data)
     elif mode == "R":
-        print("<<<", litter.request(channel, data))
+        try:
+            print("<<<", litter.request(channel, data))
+        except litter.RequestTimeoutException:
+            print_exc()
     else:
         print(f"Invalid input. `mode` must be 'P' for publish or 'R' for request.")
