@@ -5,6 +5,9 @@ import os
 import random
 import re
 from pathlib import Path
+from threading import Thread
+from traceback import print_exc
+from queue import Queue
 
 from flask import Flask, jsonify, send_file, request
 from loguru import logger
@@ -29,7 +32,38 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
     return response
 
+cache = {}
 
+def populate_bm_cache():
+    q: Queue = cache["bm_illusts"]
+    if q.full():
+        return 
+    logger.debug("开始填充缓存")
+    resp = api.user_bookmarks()
+    cnt = resp["total"]
+    while not q.full():
+        i = random.choice(range(cnt))
+        offset, bias = i // 48 * 48, i % 48
+        try:
+            illust_id = api.user_bookmarks(offset=offset)["works"][bias]["id"]
+            pages = api.illust_pages(illust_id)
+            if pages is None:
+                continue
+            p = random.randint(0, len(pages) - 1)
+            url = pages[p]["urls"]["original"]
+            image_data = api.download(url, None)
+        except litter.RequestTimeoutException:
+            pass
+        else:
+            data = {
+                "file_name": url.split("/")[-1],
+                "source": f"https://www.pixiv.net/artworks/{illust_id}#{p+1}",
+                "data": image_data,
+                "online": True
+            }
+            q.put(data)
+            logger.debug(f"缓存数据已填充：{data['file_name']}")
+        
 def random_image_online() -> dict[str, str | bytes]:
     """
     从Pixiv收藏读取图片
@@ -40,22 +74,22 @@ def random_image_online() -> dict[str, str | bytes]:
         "online": True
     }
     """
-    resp = api.user_bookmarks()
-    cnt = resp["total"]
-    i = random.randint(0, int(cnt))
-    offset = i // 48 * 48
-    bias = i % 48
-    illust_id = api.user_bookmarks(offset=offset)["works"][bias]["id"]
-    pages = api.illust_pages(illust_id)
-    p = random.randint(0, len(pages) - 1)
-    url = pages[p]["urls"]["original"]
-    image_data = api.download(url, None)
-    return {
-        "file_name": url.split("/")[-1],
-        "source": f"https://www.pixiv.net/artworks/{illust_id}#{p}",
-        "data": image_data,
-        "online": True
-    }
+    if "bm_illusts" not in cache:
+        # 初始化缓存
+        cache["bm_illusts"] = Queue(config.get("random_image_server/cache/capacity", 10))
+        cache["bm_updating"] = False
+        logger.debug("初始化数据缓存")
+        
+    with cache["bm_illusts"].mutex:
+        logger.debug("当前缓存：{}".format(", ".join(x["file_name"] for x in list(cache["bm_illusts"].queue))))
+    if len(cache["bm_illusts"].queue) < config.get("random_image_server/cache/threshold", 3):
+        # 缓存即将用尽
+        Thread(target=populate_bm_cache).start()
+
+    result = cache["bm_illusts"].get(timeout=5)
+    
+    return result
+    
 
 
 def random_image_offline() -> dict[str, str | bytes] | None:
@@ -111,15 +145,19 @@ def get_random():
         logger.info("在线获取图片")
         try:
             result = random_image_online()
+            result["online"] = True
         except Exception as e:
-            logger.error("在线获取图片失败", e)
+            print_exc()
+            logger.error("在线获取图片失败")
 
     if result is None:
         logger.info("离线获取图片")
         result = random_image_offline()
 
     if result is not None:
-        logger.info("图片信息：filename={}, source={}".format(result["file_name"], result["source"]))
+        if "online" not in result:
+            result['online'] = False
+        logger.info("图片信息：filename={}, source={}, online={}".format(result["file_name"], result["source"], result["online"]))
         if request.args.get("binary", "false") == "true":
             mime_type, _ = mimetypes.guess_type(result["source"])
             if not mime_type:
