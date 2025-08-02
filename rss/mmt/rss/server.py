@@ -111,7 +111,7 @@ def create_app() -> FastAPI:
         fg.load_extension("media")
         fg.id(f"mmt.rss.{channel}")
         fg.title(supplier.name)
-        fg.link(href=f"https://{config.get("rss/host")}/rss?channel={channel}", rel="alternate")
+        fg.link(href="https://{}/rss?channel={}".format(config.get("rss/host"), channel), rel="alternate")
         fg.description(supplier.description())
         fg.language("zh-cn")
         fg.lastBuildDate(datetime.now(pytz.timezone("Asia/Shanghai")))
