@@ -3,11 +3,11 @@ from datetime import datetime
 
 from loguru import logger
 
-from agents.pixiv import api
-from ..supplier import Supplier, MmtItem
+from mmt.agents.pixiv import api
+from mmt.rss import AbstractSupplier, MmtItem
 
 
-class PixivFollowSupplier(Supplier):
+class PixivFollowSupplier(AbstractSupplier):
     @property
     def name(self) -> str:
         return "Pixiv Follow"
@@ -31,3 +31,6 @@ class PixivFollowSupplier(Supplier):
 
     def resolve(self, url: str) -> bytes | None:
         return api.resolve(url)
+
+
+supplier = PixivFollowSupplier()

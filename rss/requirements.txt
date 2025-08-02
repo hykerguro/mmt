@@ -1,1 +1,5 @@
 mmt-core
+pytz
+fastapi
+feedgen
+loguru

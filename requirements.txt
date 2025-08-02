@@ -3,3 +3,17 @@
 -e ./apps
 -e ./tools
 -e ./rss
+pytz~=2025.2
+fastapi~=0.115.13
+feedgen~=1.0.0
+loguru~=0.7.3
+peewee~=3.18.1
+requests~=2.32.4
+Flask~=3.1.1
+redis~=6.2.0
+Telethon~=1.40.0
+pillow~=11.2.1
+bs4~=0.0.2
+beautifulsoup4~=4.13.4
+tqdm~=4.67.1
+gql~=3.5.3

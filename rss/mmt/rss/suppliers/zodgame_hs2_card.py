@@ -1,10 +1,10 @@
 from loguru import logger
 
-from agents.zodgame import api
-from ..supplier import Supplier, MmtItem
+from mmt.agents.zodgame import api
+from mmt.rss import AbstractSupplier, MmtItem
 
 
-class HS2CardSupplier(Supplier):
+class HS2CardSupplier(AbstractSupplier):
     @property
     def name(self) -> str:
         return "HS2Card"
@@ -20,3 +20,6 @@ class HS2CardSupplier(Supplier):
 
     def resolve(self, url: str) -> bytes | None:
         return api.http_get(url)
+
+
+supplier = HS2CardSupplier()

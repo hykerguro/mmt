@@ -47,7 +47,7 @@ class ZodgameAgent:
 
     def get_forum_threads(self, thread_url: str) -> list[dict]:
         resp = self.http_get(thread_url)
-        soup = BeautifulSoup(resp)
+        soup = BeautifulSoup(resp, "lxml")
         posts = soup.find("ul", id="waterfall").find_all("li")
         result = []
         for post in posts:
