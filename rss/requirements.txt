@@ -3,3 +3,4 @@ pytz
 fastapi[all]
 feedgen
 loguru
+uvicorn

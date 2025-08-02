@@ -1,1 +1,1 @@
-from .server import AbstractSupplier, MmtItem, app
+from .server import AbstractSupplier, MmtItem

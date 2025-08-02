@@ -11,11 +11,7 @@ from fastapi import FastAPI, Response, Query, HTTPException
 from feedgen.feed import FeedGenerator
 from loguru import logger
 
-import litter
 from confctl import config
-
-config.load_config("config/dev.yaml")
-litter.connect(config.get('redis/host'), config.get('redis/port'), app_name='rss_server')
 
 
 # region model定义
@@ -52,11 +48,9 @@ class AbstractSupplier(ABC):
 # endregion
 
 
-def load_supplier(channel: str) -> AbstractSupplier:
+def load_supplier(channel: str, supplier_pool: dict[str, AbstractSupplier]) -> AbstractSupplier:
     """
     加载supplier，查找文件夹由配置项rss/suppliers/path定义
-    :param channel:
-    :return:
     """
     if channel not in supplier_pool:
         paths = config.get("rss/suppliers/path", [os.path.dirname(os.path.abspath(__file__)) + "/suppliers"])
@@ -88,61 +82,57 @@ def load_supplier(channel: str) -> AbstractSupplier:
     return supplier_pool[channel]
 
 
-# region http服务器
+def create_app() -> FastAPI:
+    app = FastAPI()
 
+    supplier_pool: dict[str, AbstractSupplier] = {}
 
-supplier_pool: dict[str, AbstractSupplier] = {}
+    @app.get("/resolve")
+    def resolve_url(
+            channel: str = Query(..., description="Channel"),
+            url: str = Query(..., description="URL to resolve")
+    ) -> Response:
+        if channel not in supplier_pool:
+            raise HTTPException(status_code=404, detail="Channel not found")
+        logger.info(f"Resolving {url} for {channel}")
+        result = supplier_pool.get(channel).resolve(url)
+        if result is None:
+            raise HTTPException(status_code=404, detail="Resource not found")
+        return Response(content=result, media_type="application/octet-stream")
 
-app = FastAPI()
+    @app.get("/rss")
+    def generate_rss(channel: str = Query(..., description="Channel")) -> Response:
+        try:
+            supplier = load_supplier(channel, supplier_pool)
+        except ImportError:
+            raise HTTPException(status_code=404, detail="Channel not found")
 
+        fg = FeedGenerator()
+        fg.load_extension("media")
+        fg.id(f"mmt.rss.{channel}")
+        fg.title(supplier.name)
+        fg.link(href=f"https://{config.get("rss/host")}/rss?channel={channel}", rel="alternate")
+        fg.description(supplier.description())
+        fg.language("zh-cn")
+        fg.lastBuildDate(datetime.now(pytz.timezone("Asia/Shanghai")))
 
-@app.get("/resolve")
-def resolve_url(
-        channel: str = Query(..., description="Channel"),
-        url: str = Query(..., description="URL to resolve")
-) -> Response:
-    if channel not in supplier_pool:
-        raise HTTPException(status_code=404, detail="Channel not found")
-    logger.info(f"Resolving {url} for {channel}")
-    result = supplier_pool.get(channel).resolve(url)
-    if result is None:
-        raise HTTPException(status_code=404, detail="Resource not found")
-    return Response(content=result, media_type="application/octet-stream")
+        for item in supplier.supply():
+            logger.debug(item)
+            fe = fg.add_entry()
+            fe.id(f'{channel}_{item.id}')
+            fe.title(item.title)
+            fe.link(href=item.link)
+            fe.pubDate(item.pub_date)
+            fe.description(item.description)
+            # Media RSS 扩展
+            me = fe.media
+            me.content(
+                url=f"/resolve?channel={channel}&url={quote(item.image)}",
+                type='image/jpeg',
+                medium="image"
+            )
 
+        rss_str = fg.rss_str(pretty=True)
+        return Response(content=rss_str, media_type="application/xml")
 
-@app.get("/rss")
-def generate_rss(channel: str = Query(..., description="Channel")) -> Response:
-    try:
-        supplier = load_supplier(channel)
-    except ImportError:
-        raise HTTPException(status_code=404, detail="Channel not found")
-
-    fg = FeedGenerator()
-    fg.load_extension("media")
-    fg.id(f"mmt.rss.{channel}")
-    fg.title(supplier.name)
-    fg.link(href="https://{}/rss?channel={}".format(config.get("rss/host"), channel), rel="alternate")
-    fg.description(supplier.description())
-    fg.language("zh-cn")
-    fg.lastBuildDate(datetime.now(pytz.timezone("Asia/Shanghai")))
-
-    for item in supplier.supply():
-        logger.debug(item)
-        fe = fg.add_entry()
-        fe.id(f'{channel}_{item.id}')
-        fe.title(item.title)
-        fe.link(href=item.link)
-        fe.pubDate(item.pub_date)
-        fe.description(item.description)
-        # Media RSS 扩展
-        me = fe.media
-        me.content(
-            url=f"/resolve?channel={channel}&url={quote(item.image)}",
-            type='image/jpeg',
-            medium="image"
-        )
-
-    rss_str = fg.rss_str(pretty=True)
-    return Response(content=rss_str, media_type="application/xml")
-
-# endregion
+    return app
