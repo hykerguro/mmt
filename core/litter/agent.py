@@ -46,7 +46,7 @@ def set_appname(app_name: str) -> None:
 
 def connect(host: str | None = None, port: int | str | None = None, password: str | None = None,
             *, app_name: str | None = None):
-    if host is None and app_name is None and password is None:
+    if host is None and port is None and password is None:
         from confctl import config
         host = config.get("redis/host", "localhost")
         port = config.get("redis/port", 6379)

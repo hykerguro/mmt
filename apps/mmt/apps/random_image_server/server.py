@@ -17,7 +17,7 @@ from confctl import config, util
 from mmt.agents.pixiv import api
 
 util.default_arg_config_loggers()
-litter.connect(config.get("redis/host"), config.get("redis/port"), app_name="random_image_server")
+litter.connect(app_name="random_image_server")
 
 HTTP_PORT = config.get("random_image_server/http/port", 8080)
 HTTPS_PORT = config.get("random_image_server/https/port", 8443)
@@ -39,7 +39,12 @@ def populate_bm_cache():
     if q.full():
         return 
     logger.debug("开始填充缓存")
-    resp = api.user_bookmarks()
+    try:
+        resp = api.user_bookmarks()
+    except litter.RequestTimeoutException as e:
+        logger.error(f"获取Pixiv收藏失败: {e}")
+        return
+    
     cnt = resp["total"]
     while not q.full():
         i = random.choice(range(cnt))
