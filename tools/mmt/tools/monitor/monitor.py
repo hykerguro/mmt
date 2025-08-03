@@ -1,17 +1,17 @@
 import re
 import time
+from typing import Any
 
 import litter
 from .model import initialize_database, LtMessage
 
 
 class LitterMonitor:
-    def __init__(self, host: str, port: int, app_name: str = "LitterMonitor",
+    def __init__(self, redis_credentials: dict[str, Any], app_name: str = "LitterMonitor",
                  *, db_url: str | None = None, pattern: str = "*",
                  exclude_channels: list[str] | None = None
                  ):
-        self.host = host
-        self.port = port
+        self.redis_credentials = redis_credentials
         self.app_name = app_name
         self.pattern = pattern
         self.exclude_channels = [] if exclude_channels is None else [
@@ -19,7 +19,7 @@ class LitterMonitor:
             for channel in exclude_channels
         ]
 
-        litter.connect(self.host, self.port, app_name=self.app_name)
+        litter.connect(app_name=self.app_name, **redis_credentials)
         self.sub_entity = litter.agent._redis_client.pubsub()
         self.sub_entity.psubscribe(self.app_name, pattern)
 

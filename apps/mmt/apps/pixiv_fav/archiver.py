@@ -6,16 +6,16 @@ from typing import Any
 
 from loguru import logger
 from peewee import fn
-from mmt.agents.pixiv.webapi import PixivWebAPI, PixivWebAPIException
 
 from confctl import config
+from mmt.agents.pixiv.webapi import PixivWebAPI, PixivWebAPIException
 from .model import BookmarkWork, FollowWork
 
 _lp = lambda *_args, **_kwargs: None
 try:
     import litter
 
-    litter.connect(config.get("redis/host"), config.get("redis/port"))
+    litter.connect()
     _lp = litter.publish
 except (ImportError, KeyError, TypeError) as e:
     from traceback import print_exc

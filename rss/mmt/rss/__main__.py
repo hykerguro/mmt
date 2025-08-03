@@ -4,7 +4,7 @@ util.default_arg_config_loggers()
 
 import litter
 
-litter.connect(config.get('redis/host'), config.get('redis/port'), app_name='rss_server')
+litter.connect(app_name='rss_server')
 
 import uvicorn
 from .server import create_app

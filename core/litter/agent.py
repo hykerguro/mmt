@@ -45,7 +45,7 @@ def set_appname(app_name: str) -> None:
 
 
 def connect(host: str | None = None, port: int | str | None = None, password: str | None = None,
-            *, app_name: str | None = None):
+            *, app_name: str | None = None, **kwargs):
     if host is None and port is None and password is None:
         from confctl import config
         host = config.get("redis/host", "localhost")
@@ -58,7 +58,7 @@ def connect(host: str | None = None, port: int | str | None = None, password: st
 
     port = int(port)
     if _redis_client is None:
-        _redis_client = redis.StrictRedis(host=host, port=port, decode_responses=True, password=password)
+        _redis_client = redis.StrictRedis(host=host, port=port, decode_responses=True, password=password, **kwargs)
         _redis_client.client()
         logger.info(f"Redis connected with name {get_appname()}: {host=}, {port=}")
     else:

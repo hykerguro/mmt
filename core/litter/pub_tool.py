@@ -6,10 +6,32 @@ from confctl import util, config
 
 util.default_arg_config_loggers()
 
-host = config.get("redis/host") or input("Redis host: ")
-port = int(config.get("redis/port") or input("Redis port: "))
-name = config.get("redis/host") or input("Client name: ") or "mmt.pub.tool"
-litter.connect(host, port, app_name=name)
+
+def get_host_and_port():
+    host = input("Redis host: ")
+    port = int(input("Redis port: "))
+    password = input("Redis password: ")
+    return host, port, password
+
+
+host = config.get("redis/host", None)
+port = int(config.get("redis/port", 0))
+password = config.get("redis/password", None)
+
+if host and port:
+    ans = input(f"Connect to {host}:{port} (y/n): ")
+    if ans.lower() == "n":
+        host, port, password = get_host_and_port()
+    elif ans.lower() == "y":
+        pass
+    else:
+        print("Invalid input, exiting...")
+        exit(1)
+else:
+    host, port, password = get_host_and_port()
+
+name = "mmt.pub.tool"
+litter.connect(host, port, password=password, app_name=name)
 
 channel = None
 mode = "P"

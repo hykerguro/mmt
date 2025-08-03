@@ -17,8 +17,7 @@ util.init_loguru_loggers("pixiv_fav/logs")
 initialize_database(config.get("db_url"))
 logger.debug(f"数据库已配置")
 
-host, port = config.get("redis/host"), config.get("redis/port")
-litter.connect(host, port, app_name="pixiv_fav")
+litter.connect(app_name="pixiv_fav")
 
 logger.debug(f"ntfy通知已配置")
 

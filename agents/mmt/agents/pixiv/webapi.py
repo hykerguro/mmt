@@ -22,9 +22,8 @@ _lp = lambda *_args, **_kwargs: None
 try:
     import litter
     import redis
-    from confctl import config
 
-    litter.connect(config.get("redis/host"), config.get("redis/port"))
+    litter.connect()
     _lp = litter.publish
 except (ImportError, KeyError, TypeError, ConnectionRefusedError, redis.exceptions.ConnectionError):
     pass

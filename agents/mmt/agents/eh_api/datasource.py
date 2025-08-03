@@ -522,7 +522,7 @@ try:
     import litter
     from confctl import config
 
-    litter.connect(config.get("redis/host"), config.get("redis/port"))
+    litter.connect()
     _lp = litter.publish
 except (ImportError, KeyError, TypeError):
     pass

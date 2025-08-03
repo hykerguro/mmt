@@ -11,7 +11,7 @@ util.default_arg_config_loggers("stash_scanner/logs")
 
 import litter
 
-litter.connect(config.get("redis/host"), config.get("redis/port"), app_name=APP_NAME)
+litter.connect(app_name=APP_NAME)
 
 from loguru import logger
 
