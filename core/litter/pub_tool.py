@@ -9,7 +9,7 @@ util.default_arg_config_loggers()
 host = config.get("redis/host") or input("Redis host: ")
 port = int(config.get("redis/port") or input("Redis port: "))
 name = config.get("redis/host") or input("Client name: ") or "mmt.pub.tool"
-litter.connect(host, port, name)
+litter.connect(host, port, app_name=name)
 
 channel = None
 mode = "P"

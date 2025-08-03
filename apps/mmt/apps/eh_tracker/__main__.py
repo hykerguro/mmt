@@ -48,7 +48,7 @@ def main():
     logger.debug(f"数据库已配置")
 
     init_ntfy_inform(args)
-    litter.connect(config.get("redis/host"), config.get("redis/port"), "eh_tracker")
+    litter.connect(config.get("redis/host"), config.get("redis/port"), app_name="eh_tracker")
     logger.debug(f"ntfy通知已配置")
 
     from eh_api import refresh_ds

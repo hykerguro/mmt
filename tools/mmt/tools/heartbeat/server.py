@@ -82,7 +82,7 @@ def main(host, port, channel, interval, tolerance, eliminate):
 
 if __name__ == '__main__':
     util.default_arg_config_loggers("heartbeat/logs")
-    litter.connect(config.get("redis/host"), config.get("redis/port"), "heartbeat_service")
+    litter.connect(config.get("redis/host"), config.get("redis/port"), app_name="heartbeat_service")
 
     for ac in config.get("heartbeat/alerts"):
         register_alert(ac)

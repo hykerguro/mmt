@@ -19,7 +19,7 @@ class LitterMonitor:
             for channel in exclude_channels
         ]
 
-        litter.connect(self.host, self.port, self.app_name)
+        litter.connect(self.host, self.port, app_name=self.app_name)
         self.sub_entity = litter.agent._redis_client.pubsub()
         self.sub_entity.psubscribe(self.app_name, pattern)
 

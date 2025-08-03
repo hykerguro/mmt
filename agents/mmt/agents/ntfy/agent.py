@@ -48,7 +48,7 @@ def listen_litter(bg: bool = False):
     """
     from litter import subscribe, Message, listen, listen_bg, connect
     host, port = config.get("redis/host"), config.get("redis/port")
-    connect(host, port, "ntfy")
+    connect(host, port, app_name="ntfy")
 
     @subscribe("ntfy.publish")
     def _publish(message: Message):

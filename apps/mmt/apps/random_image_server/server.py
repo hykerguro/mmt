@@ -5,9 +5,9 @@ import os
 import random
 import re
 from pathlib import Path
+from queue import Queue
 from threading import Thread
 from traceback import print_exc
-from queue import Queue
 
 from flask import Flask, jsonify, send_file, request
 from loguru import logger
@@ -17,7 +17,7 @@ from confctl import config, util
 from mmt.agents.pixiv import api
 
 util.default_arg_config_loggers()
-litter.connect(config.get("redis/host"), config.get("redis/port"), "random_image_server")
+litter.connect(config.get("redis/host"), config.get("redis/port"), app_name="random_image_server")
 
 HTTP_PORT = config.get("random_image_server/http/port", 8080)
 HTTPS_PORT = config.get("random_image_server/https/port", 8443)
