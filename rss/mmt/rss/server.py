@@ -47,8 +47,9 @@ class AbstractSupplier(ABC):
 
 # endregion
 
+supplier_pool: dict[str, AbstractSupplier] = {}
 
-def load_supplier(channel: str, supplier_pool: dict[str, AbstractSupplier]) -> AbstractSupplier:
+def load_supplier(channel: str) -> AbstractSupplier:
     """
     加载supplier，查找文件夹由配置项rss/suppliers/path定义
     """
@@ -81,29 +82,21 @@ def load_supplier(channel: str, supplier_pool: dict[str, AbstractSupplier]) -> A
 
     return supplier_pool[channel]
 
+def resolve_url(
+        channel: str = Query(..., description="Channel"),
+        url: str = Query(..., description="URL to resolve")
+) -> Response:
+    if channel not in supplier_pool:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    logger.info(f"Resolving {url} for {channel}")
+    result = supplier_pool.get(channel).resolve(url)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    return Response(content=result, media_type="application/octet-stream")
 
-def create_app() -> FastAPI:
-    app = FastAPI()
-
-    supplier_pool: dict[str, AbstractSupplier] = {}
-
-    @app.get("/resolve")
-    def resolve_url(
-            channel: str = Query(..., description="Channel"),
-            url: str = Query(..., description="URL to resolve")
-    ) -> Response:
-        if channel not in supplier_pool:
-            raise HTTPException(status_code=404, detail="Channel not found")
-        logger.info(f"Resolving {url} for {channel}")
-        result = supplier_pool.get(channel).resolve(url)
-        if result is None:
-            raise HTTPException(status_code=404, detail="Resource not found")
-        return Response(content=result, media_type="application/octet-stream")
-
-    @app.get("/rss")
-    def generate_rss(channel: str = Query(..., description="Channel")) -> Response:
+def generate_rss(channel: str = Query(..., description="Channel")) -> Response:
         try:
-            supplier = load_supplier(channel, supplier_pool)
+            supplier = load_supplier(channel)
         except ImportError:
             raise HTTPException(status_code=404, detail="Channel not found")
 
@@ -134,5 +127,12 @@ def create_app() -> FastAPI:
 
         rss_str = fg.rss_str(pretty=True)
         return Response(content=rss_str, media_type="application/xml")
+    
+
+def create_app() -> FastAPI:
+    app = FastAPI()    
+    app.add_api_route("/resolve", resolve_url, methods=["GET"])
+    app.add_api_route("/rss/{channel}", generate_rss, methods=["GET"])
+    
 
     return app

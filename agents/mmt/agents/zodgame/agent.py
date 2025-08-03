@@ -19,6 +19,7 @@ class ZodgameAgent:
 
         if proxies is not None:
             self.session.proxies = proxies
+        logger.debug(f"proxy: {self.session.proxies}")
 
     def http_get(self, url: str, *args, **kwargs) -> bytes | None:
         if not url.startswith('http'):
@@ -33,6 +34,7 @@ class ZodgameAgent:
         pass
 
     def authorize(self, cookies: str):
+        logger.info("Authorizing ZodgameAgent with cookies")
         for kv in cookies.split(";"):
             k, v = kv.strip().split("=")
             self.session.cookies.set(k, v)

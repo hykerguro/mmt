@@ -5,7 +5,7 @@ from .agent import ZodgameAgent
 
 util.default_arg_config_loggers()
 adapt(
-    ZodgameAgent(config.get("zodgame/cookies"), config.get("proxies")),
+    ZodgameAgent(config.get("zodgame/cookies"), config.get("proxies", None)),
     APP_NAME,
     APP_NAME,
     host=config.get("redis/host"),
