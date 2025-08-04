@@ -1,4 +1,5 @@
 import json
+from time import sleep
 from traceback import print_exc
 
 import litter
@@ -11,28 +12,30 @@ def get_host_and_port():
     host = input("Redis host: ")
     port = int(input("Redis port: "))
     password = input("Redis password: ")
-    return host, port, password
+    db = input("Redis db: ")
+    return host, port, password, db
 
 
 host = config.get("redis/host", None)
 port = int(config.get("redis/port", 0))
 password = config.get("redis/password", None)
+db = int(config.get("redis/db", 0))
 
 if host and port:
     ans = input(f"Connect to {host}:{port} (y/n): ")
     if ans.lower() == "n":
-        host, port, password = get_host_and_port()
+        host, port, password, db = get_host_and_port()
     elif ans.lower() == "y":
         pass
     else:
         print("Invalid input, exiting...")
         exit(1)
 else:
-    host, port, password = get_host_and_port()
+    host, port, password, db = get_host_and_port()
 
 name = "mmt.pub.tool"
-litter.connect(host, port, password=password, app_name=name)
-
+litter.connect(app_name=name, redis_credentials={"host": host, "port": port, "password": password, "db": db})
+sleep(0.5)
 channel = None
 mode = "P"
 while (data := input(">>> ").strip()) != "exit":
