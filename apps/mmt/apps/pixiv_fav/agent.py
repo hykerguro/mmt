@@ -16,7 +16,7 @@ def archive_fav(message: litter.Message):
 
 
 def serve(host, port):
-    litter.listen(host, port, APP_NAME)
+    litter.listen(app_name=APP_NAME)
 
 
 if __name__ == '__main__':

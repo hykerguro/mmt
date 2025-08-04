@@ -3,18 +3,18 @@ import re
 from traceback import format_exc
 from typing import Any
 
-import tg
 from apscheduler.schedulers.blocking import BlockingScheduler
 from heartbeat.agent import beat_bg
 from loguru import logger
-from pixiv_webapi import PixivWebAPI
 from schd.api import add_job, remove_job
-from stashapi import StashAPI, GalleryFilterType, HierarchicalMultiCriterionInput, CriterionModifier, FindFilterType, \
-    ImageFilterType, MultiCriterionInput, Image, Gallery
 
 import litter
+import tg
 from confctl import config, util
 from model import SetuEntity, ViewHistoryEntity, initialize_database, UserConfigEntity, TimedSetuEntity
+from pixiv_webapi import PixivWebAPI
+from stashapi import StashAPI, GalleryFilterType, HierarchicalMultiCriterionInput, CriterionModifier, FindFilterType, \
+    ImageFilterType, MultiCriterionInput, Image, Gallery
 
 papi: PixivWebAPI | None = None
 
@@ -261,7 +261,7 @@ def main():
     StashAPI.configure(config.get("stashapi/url"), config.get("stashapi/token"))
 
     host, port = config.get("redis/host"), config.get("redis/port")
-    litter.listen_bg(host, port, "sesebot")
+    litter.listen_bg(app_name="sesebot")
     beat_bg()
 
     BlockingScheduler().start()

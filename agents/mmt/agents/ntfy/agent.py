@@ -46,9 +46,7 @@ def listen_litter(bg: bool = False):
     :param bg: 是否以后台方式运行
     :return:
     """
-    from litter import subscribe, Message, listen, listen_bg, connect
-    host, port = config.get("redis/host"), config.get("redis/port")
-    connect(app_name="ntfy")
+    from litter import subscribe, Message, listen, listen_bg
 
     @subscribe("ntfy.publish")
     def _publish(message: Message):
@@ -57,13 +55,8 @@ def listen_litter(bg: bool = False):
             publish(**data)
         else:
             raise ValueError(f"ntfy消息必须包含'topic'和'message'")
-    
-    try:
-        from heartbeat.agent import beat_bg
-        beat_bg("ntfy", host=host, port=port)
-    except:
-        pass
-    (listen_bg if bg else listen)(host, port)
+
+    (listen_bg if bg else listen)(app_name="ntfy")
 
 
 if __name__ == "__main__":

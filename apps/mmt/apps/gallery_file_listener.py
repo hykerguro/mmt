@@ -30,13 +30,7 @@ def main():
         tgmp.has_file(),
     )
     litter.subscribe("tg.message.receive", get_handler(condition, message_handler))
-    host, port = config.get("redis/host"), config.get("redis/port")
-    try:
-        from heartbeat.agent import beat_bg
-        beat_bg("gallery_file_listener", host=host, port=port)
-    except ImportError:
-        pass
-    litter.listen(host, port)
+    litter.listen()
 
 
 if __name__ == "__main__":

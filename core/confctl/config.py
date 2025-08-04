@@ -6,6 +6,7 @@ __all__ = [
     "SubConf",
     "get",
     "set",
+    "_CONFIG_VALUE_GUARD"
 ]
 
 _CONFIG_VALUE_GUARD = object()

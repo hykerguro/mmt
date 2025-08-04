@@ -128,7 +128,7 @@ def main():
         logger.info("监听pixiv关注")
         litter.subscribe("pixiv_fav.archive_follow.partdone", on_archive_fav)
 
-    litter.listen_bg(host, port, "pixiv_scraper")
+    litter.listen_bg(app_name="pixiv_scraper")
     beat_bg()
 
     sc = BlockingScheduler()

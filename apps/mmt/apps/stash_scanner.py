@@ -111,4 +111,4 @@ def period_scan(message: litter.Message):
 
 
 logger.info(f"stash scanner 开始监听")
-litter.listen(config.get("redis/host"), config.get("redis/port"), APP_NAME)
+litter.listen(app_name=APP_NAME)

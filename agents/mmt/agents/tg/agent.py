@@ -149,9 +149,8 @@ if __name__ == '__main__':
 
     util.default_arg_config_loggers("tg/logs")
 
-    # liiter初始化
-    host, port = config.get("redis/host"), config.get("redis/port")
-    litter.listen_bg(host, port, app_name="tg")
+    # litter初始化
+    litter.listen_bg(app_name="tg")
     beat_bg()
 
     # telethon初始化

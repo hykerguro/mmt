@@ -74,7 +74,7 @@ def main(host, port, channel, interval, tolerance, eliminate):
 
         NOTE[service] = {"last": time.time(), "cnt": 0, "interval": 3600}
 
-    litter.listen_bg(host, port, "heartbeat_service")
+    litter.listen_bg(app_name="heartbeat_service")
     logger.info(f"Heartbeat service started at redis://{host}:{port}/{channel}, {interval=}, {tolerance=} "
                 f"with {len(ALERTS)} alerts:" + ", ".join(map(str, ALERTS)))
     period_check(interval, tolerance, eliminate)

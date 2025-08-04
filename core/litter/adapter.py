@@ -1,5 +1,5 @@
 import inspect
-from typing import Callable
+from typing import Callable, Any
 
 from loguru import logger
 
@@ -27,7 +27,7 @@ def build_adapter(name: str, method: Callable) -> Callable:
 
 
 def adapt(api, app_name: str, pattern_prefix: str | None = None, *,
-          host: str | None = None, port: int | str | None = None, bg: bool = False,
+          redis_credentials: dict[str, Any] | None = None, bg: bool = False,
           executor_workers: int = 4
           ) -> None:
     if pattern_prefix is None:
@@ -40,10 +40,8 @@ def adapt(api, app_name: str, pattern_prefix: str | None = None, *,
         subscribe(f"{pattern_prefix}:{name}", build_adapter(name, method))
         logger.info(f"\t{name}")
 
-    if bg:
-        listen_bg(host, port, app_name, executor_workers=executor_workers)
-    else:
-        listen(host, port, app_name, executor_workers=executor_workers)
+    (listen_bg if bg else listen)(app_name=app_name, redis_credentials=redis_credentials,
+                                  executor_workers=executor_workers)
 
 
 def api(app_name: str, *, ret: bool | None = None) -> Callable:

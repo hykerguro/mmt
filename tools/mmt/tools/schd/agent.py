@@ -57,7 +57,7 @@ def list_jobs(message: litter.Message):
 
 def main():
     global scheduler
-    litter.listen_bg(config.get("redis/host"), config.get("redis/port"), "schd")
+    litter.listen_bg(app_name="schd")
 
     scheduler = BlockingScheduler(jobstores={
         'default': SQLAlchemyJobStore(url=config.get("db_url"))

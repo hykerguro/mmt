@@ -1,3 +1,4 @@
+import atexit
 import threading
 import traceback
 import uuid
@@ -44,26 +45,38 @@ def set_appname(app_name: str) -> None:
         logger.info(f"AppName changed to {_app_name}")
 
 
-def connect(host: str | None = None, port: int | str | None = None, password: str | None = None,
-            *, app_name: str | None = None, **kwargs):
-    if host is None and port is None and password is None:
-        from confctl import config
-        host = config.get("redis/host", "localhost")
-        port = config.get("redis/port", 6379)
-        password = config.get("redis/password", None)
+def connect(host: str | None = None, port: int | str | None = None, password: str | None = None, db: int = 0,
+            *, redis_credentials: dict[str, Any] | None = None, app_name: str | None = None):
+    """
+    redis_credentials > (host, port, password) > config.get("redis")
+    """
+    if redis_credentials is None:
+        if host is None and port is None and password is None:
+            from confctl import config
+            redis_credentials = config.get("redis")
+            redis_credentials["password"] = redis_credentials.get("password", None)
+            redis_credentials["db"] = redis_credentials.get("db", 0)
+        else:
+            redis_credentials = {
+                "host": host,
+                "port": port,
+                "password": password,
+                "db": db,
+            }
 
     global _redis_client
     if app_name is not None:
         set_appname(app_name)
 
-    port = int(port)
     if _redis_client is None:
-        _redis_client = redis.StrictRedis(host=host, port=port, decode_responses=True, password=password, **kwargs)
+        _redis_client = redis.StrictRedis(decode_responses=True, **redis_credentials)
         _redis_client.client()
-        logger.info(f"Redis connected with name {get_appname()}: {host=}, {port=}")
+        logger.info(
+            f"Redis connected {redis_credentials['host']}:{redis_credentials['port']} with name {get_appname()}")
     else:
         # logger.warning(f"Redis had already connected: {host=}, {port=}")
         pass
+    atexit.register(disconnect)
 
 def disconnect() -> None:
     global _redis_client
@@ -209,12 +222,10 @@ def handler_callback(message: Message):
     return _handler
 
 
-def listen(host: str | None = None, port: int | str | None = None, app_name: str | None = None,
-           *, executor_workers: int = 4):
+def listen(*, app_name: str | None = None, redis_credentials: dict[str, Any] | None = None, executor_workers: int = 4):
     global _litter_thread, _sub_entity, _executor
 
-    if host is not None and port is not None:
-        connect(host, int(port), app_name=app_name)
+    connect(app_name=app_name, redis_credentials=redis_credentials)
 
     if _redis_client is None:
         raise RuntimeError("Redis is not connected, you must connect first by calling 'connect(host, port)'")
@@ -249,14 +260,14 @@ def listen(host: str | None = None, port: int | str | None = None, app_name: str
                 _executor.submit(func, message).add_done_callback(handler_callback(message))
 
 
-def listen_bg(host: str | None = None, port: int | str | None = None, app_name: str | None = None,
-              *, executor_workers: int = 4):
+def listen_bg(*, app_name: str | None = None, redis_credentials: dict[str, Any] | None = None,
+              executor_workers: int = 4):
     global _litter_thread
     if _litter_thread is not None:
         raise RuntimeError(f"listen thread had been already running")
 
-    _litter_thread = threading.Thread(target=listen, args=(host, port, app_name),
-                                      kwargs={"executor_workers": executor_workers})
+    _litter_thread = threading.Thread(target=listen, kwargs=dict(
+        app_name=app_name, redis_credentials=redis_credentials, executor_workers=executor_workers))
     _litter_thread.name = "LITTER_AGENT_LISTEN_DAEMON"
     _litter_thread.daemon = True
     _litter_thread.start()
