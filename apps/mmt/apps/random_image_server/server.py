@@ -12,15 +12,16 @@ from traceback import print_exc
 from flask import Flask, jsonify, send_file, request
 from loguru import logger
 
+from . import APP_NAME
+
 import litter
 from confctl import config, util
 from mmt.agents.pixiv import api
 
 util.default_arg_config_loggers()
-litter.connect(app_name="random_image_server")
+litter.connect(app_name=APP_NAME)
 
 HTTP_PORT = config.get("random_image_server/http/port", 8080)
-HTTPS_PORT = config.get("random_image_server/https/port", 8443)
 IMAGE_FOLDER = Path(config.get("random_image_server/images/folder", "./images"))
 app = Flask(__name__)
 
@@ -216,16 +217,5 @@ def bookmarks_delete():
     return jsonify(api.bookmarks_delete(req["illust_id"]))
 
 
-def run_http():
+def run():
     app.run(host='0.0.0.0', port=HTTP_PORT)
-
-
-def run_https():
-    app.run(host='0.0.0.0', port=HTTPS_PORT, ssl_context=tuple(config.get("random_image_server/https/ssl_context")))  # 使用 SSL 证书
-
-def main():
-    from threading import Thread
-    
-    Thread(target=run_http).start()
-    if config.get("random_image_server/https/enabled", False):
-        Thread(target=run_https).start()

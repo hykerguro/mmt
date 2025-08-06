@@ -1,0 +1,1 @@
+APP_NAME = "random_image_server"
