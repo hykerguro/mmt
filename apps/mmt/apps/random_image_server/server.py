@@ -184,8 +184,9 @@ def exclude():
         return jsonify({"error": "Filename is required"}), 400
 
     if online:
-        illust_id = re.match(r"(\d+_p(\d+)?)", filename).group(1)
+        illust_id = re.match(r"(\d+)(_p(\d+))?", filename).group(1)
         ret = api.bookmarks_delete(illust_id=illust_id)
+        print(ret)
         if not ret or ret.get("error"):
             return jsonify({"error": "Illust not found"}), 404
     else:
