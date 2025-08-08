@@ -30,7 +30,8 @@ class PixivFavArchiver:
         self.papi = None
 
     def refresh_papi(self):
-        self.papi = PixivWebAPI(config.get("pixiv_webapi/token"), proxies=config.get("pixiv_webapi/proxy", None))
+        self.papi = PixivWebAPI(config.get("pixiv_webapi/php_session_id"), config.get("pixiv_webapi/csrf_token"),
+                                proxies=config.get("pixiv_webapi/proxy", None))
 
     def verify_papi(self, max_retries: int = 3):
         logger.info(f"验证Pixiv token有效性...")

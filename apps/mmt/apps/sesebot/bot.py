@@ -257,7 +257,7 @@ def main():
     SETU_KEYWORDS = config.get("sesebot/keywords")
 
     initialize_database(config.get("db_url"))
-    papi = PixivWebAPI(config.get("pixiv_webapi/token"))
+    papi = PixivWebAPI(config.get("pixiv_webapi/php_session_id"), config.get("pixiv_webapi/csrf_token"))
     StashAPI.configure(config.get("stashapi/url"), config.get("stashapi/token"))
 
     host, port = config.get("redis/host"), config.get("redis/port")

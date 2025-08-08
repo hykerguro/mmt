@@ -134,7 +134,7 @@ def bookmarks_add(self, illust_id: int | str, *, restrict: int = 0, comment: str
 
 
 @api(APP_NAME)
-def bookmarks_delete(self, illust_id: int | str) -> Json | None:
+def bookmarks_delete(*, bookmark_id: int | str | None = None, illust_id: int | str | None = None) -> Json | None:
     """
     删除收藏
     :param self:

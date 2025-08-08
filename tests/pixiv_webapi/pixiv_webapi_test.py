@@ -2,8 +2,9 @@ import json
 import unittest
 from unittest.mock import patch, Mock
 
-import litter
 from agents.pixiv import PixivWebAPI, PixivWebAPIException, api
+
+import litter
 from confctl import config
 
 
@@ -11,7 +12,7 @@ class TestPixivWebAPI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         config.load_config("config/dev.yaml")
-        cls.papi = PixivWebAPI(config.get("pixiv_webapi/token"))
+        cls.papi = PixivWebAPI(config.get("pixiv_webapi/php_session_id"), config.get("pixiv_webapi/csrf_token"))
 
     @patch('requests.Session.get')
     def test_illust(self, mock_get):

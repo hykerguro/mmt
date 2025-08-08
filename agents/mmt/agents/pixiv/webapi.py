@@ -34,7 +34,8 @@ class PixivWebAPIException(Exception):
 
 
 class PixivWebAPI:
-    def __init__(self, php_session_id: str, lang: str = "zh", proxies=None, *, min_interval: float = 0.5):
+    def __init__(self, php_session_id: str, csrf_token: str, lang: str = "zh", proxies=None, *,
+                 min_interval: float = 0.5):
         self.lang = lang
         self.base_url = "https://www.pixiv.net/ajax"
         self.session = requests.Session()
@@ -42,7 +43,8 @@ class PixivWebAPI:
         self.user_id = int(php_session_id.split("_")[0])
         self.session.headers.update({
             "accept-encoding": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0"
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0",
+            "x-csrf-token": csrf_token,
         })
         if proxies and isinstance(proxies, dict):
             self.session.proxies.update(proxies)
@@ -208,5 +210,9 @@ class PixivWebAPI:
                                 "tags": tags
                             })
 
-    def bookmarks_delete(self, illust_id: int | str) -> Json | None:
-        return self.request("POST", "illusts/bookmarks/delete", data={"bookmark_id": illust_id})
+    def bookmarks_delete(self, *, bookmark_id: int | str | None = None,
+                         illust_id: int | str | None = None) -> Json | None:
+        if bookmark_id is None:
+            assert illust_id is not None
+            bookmark_id = self.illust(illust_id)["bookmarkData"]["id"]
+        return self.request("POST", "illusts/bookmarks/delete", data={"bookmark_id": bookmark_id})

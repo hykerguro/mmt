@@ -12,11 +12,10 @@ from traceback import print_exc
 from flask import Flask, jsonify, send_file, request
 from loguru import logger
 
-from . import APP_NAME
-
 import litter
 from confctl import config, util
 from mmt.agents.pixiv import api
+from . import APP_NAME
 
 util.default_arg_config_loggers()
 litter.connect(app_name=APP_NAME)
@@ -176,17 +175,25 @@ def get_random():
     else:
         return jsonify({"error": "File not found"}), 404
 
-
 @app.route('/exclude', methods=['POST'])
 def exclude():
-    filename = request.get_data(as_text=True)
+    req = request.json
+    filename = req["filename"]
+    online = req["online"]
     if not filename:
         return jsonify({"error": "Filename is required"}), 400
-    with open(os.path.join(IMAGE_FOLDER, "exclude.txt"), "a+") as f:
-        f.seek(0)
-        rs = [l.strip() for l in f.readlines() if l]
-        if filename not in rs:
-            f.write(filename + "\n")
+
+    if online:
+        illust_id = re.match(r"(\d+_p(\d+)?)", filename).group(1)
+        ret = api.bookmarks_delete(illust_id=illust_id)
+        if not ret or ret.get("error"):
+            return jsonify({"error": "Illust not found"}), 404
+    else:
+        with open(os.path.join(IMAGE_FOLDER, "exclude.txt"), "a+") as f:
+            f.seek(0)
+            rs = [l.strip() for l in f.readlines() if l]
+            if filename not in rs:
+                f.write(filename + "\n")
     return jsonify({"message": "File excluded successfully"})
 
 
