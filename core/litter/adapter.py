@@ -3,7 +3,8 @@ from typing import Callable, Any
 
 from loguru import logger
 
-from .agent import subscribe, listen, listen_bg, request, publish
+import litter.agent
+from .agent import subscribe, listen_bg, request, publish
 from .model import Message
 
 __all__ = [
@@ -40,9 +41,16 @@ def adapt(api, app_name: str, pattern_prefix: str | None = None, *,
         subscribe(f"{pattern_prefix}:{name}", build_adapter(name, method))
         logger.info(f"\t{name}")
 
-    (listen_bg if bg else listen)(app_name=app_name, redis_credentials=redis_credentials,
+    listen_bg(app_name=app_name, redis_credentials=redis_credentials,
                                   executor_workers=executor_workers)
 
+    if not bg:
+        try:
+            while True:
+                pass
+        except KeyboardInterrupt:
+            litter.agent.disconnect()
+        # sys.exit(0)
 
 def api(app_name: str, *, ret: bool | None = None) -> Callable:
     def decorator(method: Callable) -> Callable:

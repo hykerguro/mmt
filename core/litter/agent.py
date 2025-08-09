@@ -79,13 +79,17 @@ def connect(host: str | None = None, port: int | str | None = None, password: st
     atexit.register(disconnect)
 
 def disconnect() -> None:
-    global _redis_client
+    global _redis_client, _sub_entity
+    if _sub_entity is not None:
+        _sub_entity.unsubscribe()
+        _sub_entity.close()
+        _sub_entity = None
     if _redis_client is not None:
         _redis_client.close()
         _redis_client = None
-        logger.info("Redis disconnected")
-    else:
-        logger.warning("Redis client either not inited or already disconnected")
+    logger.info("Redis disconnected")
+    # else:
+    # logger.warning("Redis client either not inited or already disconnected")
 
 def subscribe(pattern: str | Collection[str], func: Callable[[Message], Message | None] | None = None):
     if func is not None:

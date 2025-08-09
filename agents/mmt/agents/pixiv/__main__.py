@@ -11,3 +11,6 @@ adapt(
     APP_NAME,
     bg=False
 )
+
+while True:
+    pass

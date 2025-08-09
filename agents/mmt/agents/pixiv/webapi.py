@@ -214,5 +214,8 @@ class PixivWebAPI:
                          illust_id: int | str | None = None) -> Json | None:
         if bookmark_id is None:
             assert illust_id is not None
-            bookmark_id = self.illust(illust_id)["bookmarkData"]["id"]
+            bookmark_data = self.illust(illust_id)["bookmarkData"]
+            if not bookmark_data or not bookmark_data["id"]:
+                return None
+            bookmark_id = bookmark_data["id"]
         return self.request("POST", "illusts/bookmarks/delete", data={"bookmark_id": bookmark_id})
