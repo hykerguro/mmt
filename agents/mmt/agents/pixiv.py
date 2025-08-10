@@ -19,11 +19,7 @@ class PixivWebAPIException(Exception):
     pass
 
 
-@agent("mmt.agents.pixiv",
-       init_args=(FromConfig("pixiv_webapi/php_session_id"), FromConfig("pixiv_webapi/csrf_token")),
-       special_config={"download": {"timeout": 60}}
-       )
-class PixivAgent(AgentBase):
+class PixivWebAPI:
     def __init__(self, php_session_id: str, csrf_token: str, lang: str = "zh", proxies=None, *,
                  min_interval: float = 0.5):
         self.lang = lang
@@ -104,7 +100,7 @@ class PixivAgent(AgentBase):
         return self.get(f"illust/{illust_id}/ugoira_meta")
 
     def download(self, url: str, path: str | Path | None, max_retries: int = 3, timeout: float = 10.,
-                 *, frames: list[dict[str, Any]] | None = None) -> bytes | None:
+                 *, frames: list[dict[str, Any]] | None = None) -> bytes | bool | None:
         """
         下载illust（支持ugoira）
         :param url: URL路径
@@ -112,7 +108,7 @@ class PixivAgent(AgentBase):
         :param max_retries: 最大尝试次数
         :param timeout: 超时时间
         :param frames: ugoira的帧率信息；可选，为None时会自动发起请求获取
-        :return: 如果path为None，则返回下载的图片的二进制数据
+        :return: 如果path为None，则返回下载的图片的二进制数据；否则返回下载是否成功
         """
         if path is None:
             file = TemporaryFile(mode="w+b")
@@ -160,6 +156,7 @@ class PixivAgent(AgentBase):
                     sleep(timeout)
                 else:
                     logger.error(f"图片 {url} 重试已超过最大次数，下载失败")
+                return None if path is None else False
 
         if path is None:
             file.seek(0)
@@ -169,6 +166,8 @@ class PixivAgent(AgentBase):
 
         if file is not None:
             file.close()
+
+        return True
 
     def follow_latest_illust(self, p: int = 1, mode: Literal["all", "r18"] = "all"):
         """
@@ -202,3 +201,11 @@ class PixivAgent(AgentBase):
                 return None
             bookmark_id = bookmark_data["id"]
         return self.request("POST", "illusts/bookmarks/delete", data={"bookmark_id": bookmark_id})
+
+
+@agent("mmt.agents.pixiv",
+       init_args=(FromConfig("pixiv_webapi/php_session_id"), FromConfig("pixiv_webapi/csrf_token")),
+       special_config={"download": {"timeout": 60}}
+       )
+class PixivAgent(PixivWebAPI, AgentBase):
+    pass

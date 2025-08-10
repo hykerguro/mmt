@@ -3,12 +3,11 @@ import json
 
 from peewee import Model, CharField, BooleanField, DateTimeField, TextField, DatabaseProxy
 from playhouse import db_url as _db_url
-from playhouse.shortcuts import ReconnectMixin
 
 db = DatabaseProxy()
 
 
-class BaseModel(Model, ReconnectMixin):
+class BaseModel(Model):
     class Meta:
         database = db
 
