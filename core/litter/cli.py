@@ -3,21 +3,24 @@ import json
 
 import litter
 from confctl import config
-
-
+from loguru import logger
 def publish(channel: str, body: str):
     data = json.loads(body)
     litter.publish(channel, data)
+    logger.info(f"published to {channel}")
 
 
 def request(channel: str, body: str):
     data = json.loads(body)
-    litter.request(channel, data)
+    logger.info(f"request to {channel}")
+    result = litter.request(channel, data)
+    logger.info(f"result from {channel}:\n{result}")
 
 
 def main():
     parser = argparse.ArgumentParser(prog="litter", description="Litter CLI tool")
     parser.add_argument("--config-path", "-c", default="config/config.yaml", help="Configuration file path")
+    parser.add_argument("--app-name", "-n", default=None, help="App name")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # publish 子命令
@@ -32,7 +35,8 @@ def main():
 
     args = parser.parse_args()
 
-    litter.connect(redis_credentials=config.get("redis"))
+    config.load_config(args.config_path)
+    litter.connect(redis_credentials=config.get("redis"), app_name=args.app_name)
 
     if args.command == "publish":
         publish(args.channel, args.body)

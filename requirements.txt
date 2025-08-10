@@ -1,8 +1,8 @@
--e ./core
--e ./agents
--e ./apps
--e ./tools
--e ./rss
+./core
+./agents
+./apps
+./tools
+./rss
 pytz~=2025.2
 fastapi~=0.115.13
 feedgen~=1.0.0

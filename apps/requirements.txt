@@ -1,2 +1,7 @@
 mmt-core
 flask
+loguru
+
+# pixiv_fav
+peewee
+psycopg2-binary
