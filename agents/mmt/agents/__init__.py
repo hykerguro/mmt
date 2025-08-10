@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Self
 
 from confctl import util, config
 from litter.adapter import adapt
@@ -57,3 +57,9 @@ def agent(
         return clazz
 
     return _inner
+
+
+class AgentBase:
+    @classmethod
+    def api(cls) -> Self:
+        pass
