@@ -8,17 +8,19 @@ from pathlib import Path
 from queue import Queue
 from threading import Thread
 from traceback import print_exc
+from typing import Any
 
 from flask import Flask, jsonify, send_file, request
 from loguru import logger
 
 import litter
 from confctl import config, util
-from mmt.agents.pixiv import api
+from mmt.agents.pixiv import PixivAgent
 from . import APP_NAME
 
 util.default_arg_config_loggers()
 litter.connect(app_name=APP_NAME)
+api: PixivAgent = PixivAgent.api()
 
 HTTP_PORT = config.get("random_image_server/http/port", 8080)
 IMAGE_FOLDER = Path(config.get("random_image_server/images/folder", "./images"))
@@ -32,19 +34,21 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
     return response
 
+
 cache = {}
+
 
 def populate_bm_cache():
     q: Queue = cache["bm_illusts"]
     if q.full():
-        return 
+        return
     logger.debug("开始填充缓存")
     try:
         resp = api.user_bookmarks()
     except litter.RequestTimeoutException as e:
         logger.error(f"获取Pixiv收藏失败: {e}")
         return
-    
+
     cnt = resp["total"]
     while not q.full():
         i = random.choice(range(cnt))
@@ -62,14 +66,15 @@ def populate_bm_cache():
         else:
             data = {
                 "file_name": url.split("/")[-1],
-                "source": f"https://www.pixiv.net/artworks/{illust_id}#{p+1}",
+                "source": f"https://www.pixiv.net/artworks/{illust_id}#{p + 1}",
                 "data": image_data,
                 "online": True
             }
             q.put(data)
             logger.debug(f"缓存数据已填充：{data['file_name']}")
-        
-def random_image_online() -> dict[str, str | bytes]:
+
+
+def random_image_online() -> dict[str, Any]:
     """
     从Pixiv收藏读取图片
     :return: {
@@ -84,7 +89,7 @@ def random_image_online() -> dict[str, str | bytes]:
         cache["bm_illusts"] = Queue(config.get("random_image_server/cache/capacity", 10))
         cache["bm_updating"] = False
         logger.debug("初始化数据缓存")
-        
+
     with cache["bm_illusts"].mutex:
         logger.debug("当前缓存：{}".format(", ".join(x["file_name"] for x in list(cache["bm_illusts"].queue))))
     if len(cache["bm_illusts"].queue) < config.get("random_image_server/cache/threshold", 3):
@@ -92,12 +97,11 @@ def random_image_online() -> dict[str, str | bytes]:
         Thread(target=populate_bm_cache).start()
 
     result = cache["bm_illusts"].get(timeout=5)
-    
+
     return result
-    
 
 
-def random_image_offline() -> dict[str, str | bytes] | None:
+def random_image_offline() -> dict[str, Any] | None:
     """
     从本地文件夹读取图片
 
@@ -162,7 +166,8 @@ def get_random():
     if result is not None:
         if "online" not in result:
             result['online'] = False
-        logger.info("图片信息：filename={}, source={}, online={}".format(result["file_name"], result["source"], result["online"]))
+        logger.info("图片信息：filename={}, source={}, online={}".format(result["file_name"], result["source"],
+                                                                        result["online"]))
         if request.args.get("binary", "false") == "true":
             mime_type, _ = mimetypes.guess_type(result["source"])
             if not mime_type:
@@ -174,6 +179,7 @@ def get_random():
             return jsonify(result), 200
     else:
         return jsonify({"error": "File not found"}), 404
+
 
 @app.route('/exclude', methods=['POST'])
 def exclude():

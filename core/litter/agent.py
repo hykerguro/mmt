@@ -71,6 +71,7 @@ def connect(host: str | None = None, port: int | str | None = None, password: st
     if _redis_client is None:
         _redis_client = redis.StrictRedis(decode_responses=True, **redis_credentials)
         _redis_client.client()
+        redis_credentials.pop("password", None)
         logger.info(
             f"Redis connected {redis_credentials} with name {get_appname()}")
     else:
@@ -126,7 +127,7 @@ def publish(channel: str, body, *, headers: dict[str, Any] | None = None):
     return _redis_client.publish(channel, serialize(message))
 
 
-def request(channel: str, body, *, headers: dict[str, Any] | None = None, timeout: int = 5) -> Response:
+def request(channel: str, body, *, headers: dict[str, Any] | None = None, timeout: int = 15) -> Response:
     assert timeout > 0
 
     request_id = str(uuid.uuid4().hex.replace("-", ""))

@@ -1,3 +1,4 @@
+import re
 from typing import Any, Self
 
 from confctl import util, config
@@ -15,7 +16,8 @@ class FromConfig:
 
 def agent(
         app_name: str, *, init_args: tuple | None = None, init_kwargs: dict[str, Any] | None = None,
-        init_config: bool = True, log_config_key=None, redis_credentials: dict[str, Any] | None = None
+        init_config: bool = True, log_config_key=None, redis_credentials: dict[str, Any] | None = None,
+        special_config: dict[str, dict[str, Any]] | None = None,
 ):
     """
     将class转为agent
@@ -25,6 +27,7 @@ def agent(
     :param init_config: 是否初始化配置，为True时log_config_key、redis_credentials才生效
     :param log_config_key: 日志配置在配置文件中的位置
     :param redis_credentials: 连接litter的redis配置，缺省时自动读取配置文件中的redis项
+    :param special_config:
     :return:
     """
     def _inner(clazz):
@@ -52,7 +55,12 @@ def agent(
             obj = clazz.__new__(clazz)
             methods = [x for x in inspect.getmembers(obj, predicate=inspect.ismethod) if not x[0].startswith("_")]
             for name, method in methods:
-                setattr(obj, name, api(app_name, ret=True)(method))
+                extra_args = {}
+                for name_pat, sp in special_config.items():
+                    if re.match(name_pat, name):
+                        extra_args = sp
+                        break
+                setattr(obj, name, api(app_name, ret=True, **extra_args)(method))
             setattr(clazz, "api", lambda: obj)
         return clazz
 

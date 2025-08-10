@@ -42,8 +42,10 @@ def init_loguru_loggers(key):
 
 
 def default_arg_config_loggers(log_config_key: str | None = None,
-                               extra_arguments: _A | None = None) -> argparse.Namespace:
-    args = get_argparser(extra_arguments).parse_args()
+                               extra_arguments: _A | None = None,
+                               argv=None
+                               ) -> argparse.Namespace:
+    args = get_argparser(extra_arguments).parse_args(argv)
     init_config(args)
     if log_config_key is not None:
         init_loguru_loggers(log_config_key)

@@ -6,9 +6,9 @@ from requests import post
 from mmt.agents import agent, AgentBase, FromConfig
 
 
-@agent("ntfy", init_args=(FromConfig("ntfy/url"),))
+@agent("mmt.agent.ntfy", init_args=(FromConfig("ntfy/url"),))
 class NtfyAgent(AgentBase):
-    def __init__(self, server_url: str, max_len: int = 2000):
+    def __init__(self, server_url: str, max_len: int = 1250):
         self.server_url = server_url
         self.max_len = max_len
 

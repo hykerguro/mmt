@@ -50,12 +50,16 @@ def adapt(api_obj, app_name: str, pattern_prefix: str | None = None, *,
         except KeyboardInterrupt:
             litter.agent.disconnect()
 
-def api(app_name: str, *, ret: bool | None = None) -> Callable:
+
+def api(app_name: str, *, ret: bool | None = None, headers: dict[str, Any] | None = None, timeout: int = 5) -> Callable:
     def decorator(method: Callable) -> Callable:
         nonlocal ret
         if ret is None:
             ret = inspect.signature(method).return_annotation is not None
-        m = request if ret else publish
+        if ret:
+            m = lambda channel, body: request(channel, body, headers=headers, timeout=timeout)
+        else:
+            m = lambda channel, body: publish(channel, body, headers=headers)
 
         def _inner(*args, **kwargs):
             kwargs["_"] = args
