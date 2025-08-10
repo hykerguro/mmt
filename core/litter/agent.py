@@ -72,7 +72,7 @@ def connect(host: str | None = None, port: int | str | None = None, password: st
         _redis_client = redis.StrictRedis(decode_responses=True, **redis_credentials)
         _redis_client.client()
         logger.info(
-            f"Redis connected {redis_credentials['host']}:{redis_credentials['port']}:{redis_credentials['db']} with name {get_appname()}")
+            f"Redis connected {redis_credentials} with name {get_appname()}")
     else:
         # logger.warning(f"Redis had already connected: {host=}, {port=}")
         pass

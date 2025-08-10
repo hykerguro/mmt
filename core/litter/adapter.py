@@ -27,15 +27,14 @@ def build_adapter(name: str, method: Callable) -> Callable:
     return _inner
 
 
-def adapt(api, app_name: str, pattern_prefix: str | None = None, *,
+def adapt(api_obj, app_name: str, pattern_prefix: str | None = None, *,
           redis_credentials: dict[str, Any] | None = None, bg: bool = False,
           executor_workers: int = 4
           ) -> None:
     if pattern_prefix is None:
         pattern_prefix = app_name
     assert " " not in pattern_prefix
-
-    methods = [x for x in inspect.getmembers(api, predicate=inspect.ismethod) if not x[0].startswith("_")]
+    methods = [x for x in inspect.getmembers(api_obj, predicate=inspect.ismethod) if not x[0].startswith("_")]
     logger.info(f"Adapting {len(methods)} methods of {app_name}:")
     for name, method in methods:
         subscribe(f"{pattern_prefix}:{name}", build_adapter(name, method))
@@ -50,7 +49,6 @@ def adapt(api, app_name: str, pattern_prefix: str | None = None, *,
                 pass
         except KeyboardInterrupt:
             litter.agent.disconnect()
-        # sys.exit(0)
 
 def api(app_name: str, *, ret: bool | None = None) -> Callable:
     def decorator(method: Callable) -> Callable:

@@ -1,4 +1,4 @@
-from . import agent, FromConfig
+from mmt.agents import agent, FromConfig
 
 
 @agent("Alice", init_args=(FromConfig("redis/host"), "114514",), init_kwargs=dict(kwarg1="1919"))
