@@ -2,6 +2,7 @@ import argparse
 import json
 
 import litter
+from confctl import config
 
 
 def publish(channel: str, body: str):
@@ -30,6 +31,8 @@ def main():
     request_parser.add_argument("body", help="JSON body string")
 
     args = parser.parse_args()
+
+    litter.connect(redis_credentials=config.get("redis"))
 
     if args.command == "publish":
         publish(args.channel, args.body)

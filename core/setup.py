@@ -10,11 +10,15 @@ local_dependencies = [req.strip() for req in requirements if req.startswith('-e'
 # 剩下的正常依赖项
 normal_dependencies = [req.strip() for req in requirements if not req.startswith('-e')]
 
-
 setup(
     name='mmt-core',
     version='0.0.1',
     packages=find_packages(),
     install_requires=normal_dependencies,
     dependency_links=local_dependencies,
+    entry_points={
+        "console_scripts": [
+            "litter = litter.cli:main",
+        ],
+    },
 )
