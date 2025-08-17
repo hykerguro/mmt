@@ -1,0 +1,26 @@
+[project]
+name = "mmt-apps"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+pixiv_archive = "pixiv_archive.archiver:main"
+
+[project.optional-dependencies]
+rand-img = [
+    "mmt-agents[api]",
+    "flask>=3.1.1",
+]
+pixiv-archive = [
+    "mmt-agents[api]",
+    "peewee>=3.18.2",
+]
+postgre = [
+    "psycopg2>=2.9.10",
+]
+
+[tool.uv.sources]
+mmt-agents = { workspace = true }

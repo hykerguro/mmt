@@ -5,7 +5,7 @@ from litter import setup
 
 setup("ntfy_test", config_path="config/dev.yaml")
 
-from mmt.agents.pixiv import PixivAgent
+from mmt.agents import PixivAgent
 
 api: PixivAgent = PixivAgent.api()
 

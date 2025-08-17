@@ -2,7 +2,7 @@ from litter import setup
 
 setup("ntfy_test")
 
-from mmt.agents.ntfy import NtfyAgent
+from mmt.agents import NtfyAgent
 
 api: NtfyAgent = NtfyAgent.api()
 

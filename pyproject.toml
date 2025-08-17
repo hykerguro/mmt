@@ -1,0 +1,24 @@
+[project]
+name = "mmt"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "mmt-core",
+    "mmt-agents[pixiv, ntfy, tg]",
+    "mmt-apps[rand-img, pixiv-archive, postgre]",
+    "pyyaml>=6.0.2",
+]
+
+[tool.uv.sources]
+mmt-core = { workspace = true }
+mmt-agents = { workspace = true }
+mmt-apps = { workspace = true }
+mmt-tools = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    "agents",
+    "core",
+    "apps",
+    "tools",
+]

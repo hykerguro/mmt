@@ -1,0 +1,26 @@
+[project]
+name = "mmt-agents"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "loguru>=0.7.3",
+    "mmt-core >= 0.1.0"
+]
+
+[tool.uv.sources]
+mmt-core = { workspace = true }
+
+[project.optional-dependencies]
+pixiv = [
+    "pillow>=11.3.0",
+    "requests>=2.32.4",
+]
+ntfy = [
+    "requests>=2.32.4",
+]
+api = []
+tg = [
+    "telethon>=1.40.0",
+]

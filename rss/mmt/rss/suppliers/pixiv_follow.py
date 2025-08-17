@@ -3,7 +3,7 @@ from datetime import datetime
 
 from loguru import logger
 
-from mmt.agents.pixiv import api
+from mmt.agents import api
 from mmt.rss import AbstractSupplier, MmtItem
 
 

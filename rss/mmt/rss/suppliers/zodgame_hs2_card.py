@@ -1,6 +1,6 @@
 from loguru import logger
 
-from mmt.agents.zodgame import api
+from mmt.agents import api
 from mmt.rss import AbstractSupplier, MmtItem
 
 
