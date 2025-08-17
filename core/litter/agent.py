@@ -4,6 +4,7 @@ import traceback
 import uuid
 from concurrent.futures import Executor, ThreadPoolExecutor, Future
 from datetime import datetime
+from threading import Lock
 from typing import Callable, Collection, Any, Iterator
 
 import redis
@@ -13,6 +14,7 @@ from .model import Message, serialize, RequestTimeoutException, Response
 
 __all__ = [
     "connect",
+    "disconnect",
     "subscribe",
     "publish",
     "listen",
@@ -23,12 +25,18 @@ __all__ = [
 ]
 
 _redis_client: redis.client.Redis | None = None
+_lock = Lock()
 _sub_entity: redis.client.PubSub | None = None
 _register_map: dict[str, list[Callable]] = {}
 _litter_thread: threading.Thread | None = None
 _app_name: str | None = None
 _executor: Executor | None = None
 _RESPONSE_QUEUE_PREFIX = "LRQ:"  # lt response queue
+
+
+def connected() -> bool:
+    with _lock:
+        return _redis_client is not None
 
 
 def get_appname() -> str:
@@ -69,8 +77,9 @@ def connect(host: str | None = None, port: int | str | None = None, password: st
         set_appname(app_name)
 
     if _redis_client is None:
-        _redis_client = redis.StrictRedis(decode_responses=True, **redis_credentials)
-        _redis_client.client()
+        with _lock:
+            _redis_client = redis.StrictRedis(decode_responses=True, **redis_credentials)
+            _redis_client.client()
         redis_credentials.pop("password", None)
         logger.info(
             f"Redis connected {redis_credentials} with name {get_appname()}")
@@ -81,14 +90,18 @@ def connect(host: str | None = None, port: int | str | None = None, password: st
 
 def disconnect() -> None:
     global _redis_client, _sub_entity
-    if _sub_entity is not None:
-        _sub_entity.unsubscribe()
-        _sub_entity.close()
-        _sub_entity = None
     if _redis_client is not None:
         _redis_client.close()
         _redis_client = None
-    logger.info("Redis disconnected")
+        logger.info("Redis disconnected")
+    # if _sub_entity is not None:
+    #     _sub_entity.unsubscribe()
+    #     _sub_entity.close()
+    #     _sub_entity = None
+    # if _redis_client is not None:
+    #     _redis_client.close()
+    #     _redis_client = None
+
     # else:
     # logger.warning("Redis client either not inited or already disconnected")
 
@@ -101,6 +114,7 @@ def subscribe(pattern: str | Collection[str], func: Callable[[Message], Message 
             if p not in _register_map:
                 _register_map[p] = []
             _register_map[p].append(func)
+        return None
     else:
         def warp(_func):
             subscribe(pattern, _func)
@@ -230,17 +244,17 @@ def handler_callback(message: Message):
 def listen(*, app_name: str | None = None, redis_credentials: dict[str, Any] | None = None, executor_workers: int = 4):
     global _litter_thread, _sub_entity, _executor
 
-    connect(app_name=app_name, redis_credentials=redis_credentials)
+    if not connected() or redis_credentials is not None:
+        connect(app_name=app_name, redis_credentials=redis_credentials)
 
-    if _redis_client is None:
+    if not connected():
         raise RuntimeError("Redis is not connected, you must connect first by calling 'connect(host, port)'")
 
     if _executor is None:
         _executor = ThreadPoolExecutor(executor_workers, thread_name_prefix=get_appname())
 
     if len(_register_map) == 0:
-        logger.warning(f"No channel to be listened.")
-        return
+        logger.warning(f"No channel to listen.")
 
     if _sub_entity is None:
         _sub_entity = _redis_client.pubsub()
@@ -251,18 +265,25 @@ def listen(*, app_name: str | None = None, redis_credentials: dict[str, Any] | N
         _litter_thread = threading.current_thread()
     logger.info(f"Thread {_litter_thread.name} listening.")
 
-    for redis_msg in _sub_entity.listen():
-        logger.trace(f"Received redis message: {redis_msg}")
-        message = Message.from_redis_message(redis_msg)
+    while connected():
+        try:
+            redis_msg = _sub_entity.get_message(timeout=0.5)
+            if redis_msg is None:
+                continue
+            logger.trace(f"Received redis message: {redis_msg}")
+            message = Message.from_redis_message(redis_msg)
 
-        if message.type in ('message', 'pmessage'):
-            key = {
-                "message": message.channel,
-                "pmessage": message.pattern
-            }[message.type]
-            funcs = _register_map.get(key, [])
-            for func in funcs:
-                _executor.submit(func, message).add_done_callback(handler_callback(message))
+            if message.type in ('message', 'pmessage'):
+                key = {
+                    "message": message.channel,
+                    "pmessage": message.pattern
+                }[message.type]
+                funcs = _register_map.get(key, [])
+                for func in funcs:
+                    _executor.submit(func, message).add_done_callback(handler_callback(message))
+        except KeyboardInterrupt:
+            disconnect()
+            break
 
 
 def listen_bg(*, app_name: str | None = None, redis_credentials: dict[str, Any] | None = None,

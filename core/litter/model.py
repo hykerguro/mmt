@@ -7,7 +7,8 @@ __all__ = [
     "serialize",
     "deserialize",
     "RequestTimeoutException",
-    "RemoteFunctionRaisedException"
+    "RemoteFunctionRaisedException",
+    "Response"
 ]
 
 from functools import cached_property

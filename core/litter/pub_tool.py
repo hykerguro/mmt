@@ -1,9 +1,11 @@
 import json
-from time import sleep
-from traceback import print_exc
+from time import sleep, time
+from typing import Any
 
 import litter
 from confctl import util, config
+
+name = "mmt.pub.tool"
 
 util.default_arg_config_loggers()
 
@@ -16,55 +18,87 @@ def get_host_and_port():
     return host, port, password, db
 
 
-host = config.get("redis/host", None)
-port = int(config.get("redis/port", 0))
-password = config.get("redis/password", None)
-db = int(config.get("redis/db", 0))
+def connect():
+    host = config.get("redis/host", None)
+    port = int(config.get("redis/port", 0))
+    password = config.get("redis/password", None)
+    db = int(config.get("redis/db", 0))
 
-if host and port:
-    ans = input(f"Connect to {host}:{port} (y/n): ")
-    if ans.lower() == "n":
+    if host and port:
+        ans = input(f"Connect to {host}:{port} (y/n): ")
+        if ans.lower() == "n":
+            host, port, password, db = get_host_and_port()
+        elif ans.lower() == "y":
+            pass
+        else:
+            print("Invalid input, exiting...")
+            exit(1)
+    else:
         host, port, password, db = get_host_and_port()
-    elif ans.lower() == "y":
-        pass
-    else:
-        print("Invalid input, exiting...")
-        exit(1)
-else:
-    host, port, password, db = get_host_and_port()
 
-name = "mmt.pub.tool"
-litter.connect(app_name=name, redis_credentials={"host": host, "port": port, "password": password, "db": db})
-sleep(0.5)
-channel = None
-mode = "P"
-while (data := input(">>> ").strip()) != "exit":
-    flag = data.count("|")
-    if flag == 0:
-        pass
-    elif flag == 1:
-        channel, data = data.split("|")
+    litter.connect(app_name=name, redis_credentials={"host": host, "port": port, "password": password, "db": db})
+
+
+def parse_input(s: str) -> tuple[str, str, Any]:
+    mode, channel, body = "P", None, None
+
+    flag = s.count("|")
+    if flag == 1:
+        channel, body = s.split("|")
     elif flag == 2:
-        mode, channel, data = data.split("|")
-    else:
-        print(f"Invalid input. Format: <mode>|<channel>|<data>")
+        mode, channel, body = s.split("|")
 
-    if channel is None:
-        print(f"Invalid input. Format: <mode>|<channel>|<data>")
-        continue
+    if channel is None or mode not in ("P", "R") or flag > 2:
+        raise ValueError(f"Invalid input. Format: <mode:P/R>|<channel>|<body>")
 
-    try:
-        data = json.loads(data)
-    except json.JSONDecodeError:
-        print_exc()
-        continue
+    return mode, channel, json.loads(body)
 
-    if mode == "P":
-        litter.publish(channel, data)
-    elif mode == "R":
+
+def prettify_resp(resp: Any) -> str:
+    if isinstance(resp, (dict, list)):
+        return json.dumps(resp, indent=2, ensure_ascii=False)
+    if isinstance(resp, litter.Response):
+        return "litter.Response" + "\n\n" + prettify_resp(resp.headers) + "\n\n" + prettify_resp(resp.body)
+
+
+def loop():
+    command_history = []
+    while (line := input(">>> ").strip()) != "exit":
+        if line == "_":
+            # 重复上一个命令
+            if command_history:
+                line = command_history[-1]["input"]
+            else:
+                continue
+        elif line == "dump":
+            filename = f"history_{time()}.json"
+            with open(filename, "w", encoding="utf8") as f:
+                json.dump(command_history, f, indent=4, ensure_ascii=False)
+            print(f"<<< dumped to {filename}")
+            continue
+
+        record = {
+            "input": line,
+            "response": None,
+            "exception": None,
+        }
+
         try:
-            print("<<<", litter.request(channel, data))
-        except litter.RequestTimeoutException:
-            print("Request timeout")
-    else:
-        print(f"Invalid input. `mode` must be 'P' for publish or 'R' for request.")
+            mode, channel, body = parse_input(line)
+            if mode == "P":
+                litter.publish(channel, body)
+            elif mode == "R":
+                resp = litter.request(channel, body)
+                print("<<<", prettify_resp(resp))
+                record["response"] = resp
+        except Exception as e:
+            record["exception"] = str(e)
+            print("ERR", e)
+        finally:
+            command_history.append(record)
+
+
+if __name__ == '__main__':
+    connect()
+    sleep(0.5)
+    loop()
