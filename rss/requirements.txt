@@ -1,6 +1,0 @@
-mmt-core
-pytz
-fastapi[all]
-feedgen
-loguru
-uvicorn
