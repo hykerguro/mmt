@@ -3,6 +3,7 @@ import math
 from pathlib import Path
 from typing import Any
 
+import requests
 from loguru import logger
 from peewee import fn
 
@@ -181,6 +182,8 @@ class PixivFavArchiver:
 
             logger.info(f"同步完成")
             litter.publish("pixiv_fav.archive_fav.done", {"local_dir": str(local_dir), "diff_illusts": diff_illusts})
+            if url := config.get("pixiv_fav/webhook/fav"):
+                requests.get(url)
         finally:
             self.task_status["fav"] = False
 
@@ -224,6 +227,8 @@ class PixivFavArchiver:
 
             logger.info(f"同步完成")
             litter.publish("pixiv_fav.archive_follow.done", {"local_dir": str(local_dir), "diff_illusts": diff_illusts})
+            if url := config.get("pixiv_fav/webhook/follow"):
+                requests.get(url)
         finally:
             self.task_status["follow"] = False
 
