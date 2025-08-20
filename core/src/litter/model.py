@@ -65,8 +65,11 @@ def _obj_hook(d):
     return d
 
 
-def deserialize(data: str, **kwargs) -> Json:
-    return json.loads(data, object_hook=_obj_hook, **kwargs)
+def deserialize(data, **kwargs) -> Json:
+    if isinstance(data, str):
+        return json.loads(data, object_hook=_obj_hook, **kwargs)
+    else:
+        return data
 
 
 class Message:
