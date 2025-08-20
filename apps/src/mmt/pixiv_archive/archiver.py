@@ -5,11 +5,11 @@ from typing import Any
 
 import requests
 from loguru import logger
-from mmt.api.pixiv import PixivApi
 from peewee import fn
 
 import litter
 from confctl.util import default_arg_config_loggers, config
+from mmt.api.pixiv import PixivApi
 from .model import BookmarkWork, FollowWork
 from .model import initialize_database
 
@@ -141,9 +141,17 @@ class PixivFavArchiver:
 
         return urls
 
+    def _heartbeat(self, phase):
+        url = config.get("pixiv_fav/webhook/fav", None) if phase == "fav" \
+            else config.get("pixiv_fav/webhook/follow", None)
+        if url is None:
+            return
+        requests.get(url)
+
     def archive_fav(self, local_dir: str | None = None):
         if self.task_status.setdefault("fav", False):
             logger.warning("已有正在运行的任务")
+            self._heartbeat("fav")
             return
 
         self.task_status["fav"] = True
@@ -158,6 +166,7 @@ class PixivFavArchiver:
 
             if not diff_illusts:
                 logger.info(f"没有新的收藏")
+                self._heartbeat("fav")
                 return
 
             logger.info(f"{len(diff_illusts)} 新的收藏，开始同步")
@@ -182,14 +191,14 @@ class PixivFavArchiver:
 
             logger.info(f"同步完成")
             litter.publish("pixiv_fav.archive_fav.done", {"local_dir": str(local_dir), "diff_illusts": diff_illusts})
-            if url := config.get("pixiv_fav/webhook/fav"):
-                requests.get(url)
+            self._heartbeat("fav")
         finally:
             self.task_status["fav"] = False
 
     def archive_follow(self, local_dir: str | None = None):
         if self.task_status.setdefault("follow", False):
             logger.warning("已有正在运行的任务")
+            self._heartbeat("follow")
             return
 
         self.task_status["follow"] = True
@@ -204,6 +213,7 @@ class PixivFavArchiver:
 
             if not diff_illusts:
                 logger.info(f"没有新的关注")
+                self._heartbeat("follow")
                 return
 
             logger.info(f"{len(diff_illusts)} 新的关注，开始同步")
@@ -227,8 +237,7 @@ class PixivFavArchiver:
 
             logger.info(f"同步完成")
             litter.publish("pixiv_fav.archive_follow.done", {"local_dir": str(local_dir), "diff_illusts": diff_illusts})
-            if url := config.get("pixiv_fav/webhook/follow"):
-                requests.get(url)
+            self._heartbeat("follow")
         finally:
             self.task_status["follow"] = False
 
