@@ -12,10 +12,10 @@ from typing import Any
 
 from flask import Flask, jsonify, send_file, request
 from loguru import logger
+from mmt.api.pixiv import PixivApi
 
 import litter
 from confctl import config, util
-from mmt.api.pixiv import PixivApi
 
 APP_NAME = "random_image_server"
 

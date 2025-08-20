@@ -19,7 +19,8 @@ pixiv-archive = [
     "peewee>=3.18.2",
 ]
 postgre = [
-    "psycopg2-binary>=2.9.10",
+    "psycopg2-binary>=2.9.10; sys_platform == 'linux'",
+    "psycopg2>=2.9.10; sys_platform == 'win32'",
 ]
 
 [tool.uv.sources]

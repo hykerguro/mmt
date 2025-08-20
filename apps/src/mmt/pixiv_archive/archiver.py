@@ -5,11 +5,11 @@ from typing import Any
 
 import requests
 from loguru import logger
+from mmt.api.pixiv import PixivApi
 from peewee import fn
 
 import litter
 from confctl.util import default_arg_config_loggers, config
-from mmt.api.pixiv import PixivApi
 from .model import BookmarkWork, FollowWork
 from .model import initialize_database
 
