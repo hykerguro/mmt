@@ -4,9 +4,10 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "mmt-core",
-    "mmt-agents[pixiv, ntfy, tg]",
+    "mmt-agents[pixiv, ntfy, tg, zodgame]",
     "mmt-apps[rand-img, pixiv-archive, postgre]",
     "pyyaml>=6.0.2",
+    "requests>=2.32.4",
 ]
 
 [tool.uv.sources]

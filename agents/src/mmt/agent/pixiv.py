@@ -20,7 +20,7 @@ class PixivWebAPIException(Exception):
     pass
 
 
-@agent("mmt.agents.pixiv",
+@agent("mmt.agent.pixiv",
        init_args=(FromConfig("pixiv_webapi/php_session_id"), FromConfig("pixiv_webapi/csrf_token"))
        )
 class PixivWebAPI(PixivApi):

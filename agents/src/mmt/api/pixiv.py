@@ -6,7 +6,7 @@ from .framework import ApiBase, api
 Json: TypeAlias = dict[str, Any] | list[Any]
 
 
-@api("mmt.agents.pixiv", download={"timeout": 120})
+@api("mmt.agent.pixiv", download={"timeout": 120})
 class PixivApi(ApiBase):
     def resolve(self, url: str, method: Literal["GET", "POST"] = 'GET', data: Any = None) -> bytes:
         ...
@@ -51,7 +51,7 @@ class PixivApi(ApiBase):
         """
         ...
 
-    def follow_latest_illust(self, p: int = 1, mode: Literal["all", "r18"] = "all") -> Json | None:
+    def follow_latest_illust(self, p: int = 1, mode: Literal["all", "r18"] = "all"):
         """
         用户关注的最新作品
         :param p: 页
@@ -60,7 +60,7 @@ class PixivApi(ApiBase):
         """
         ...
 
-    def top_illust(self, mode: Literal["all", "r18"] = "all") -> Json | None:
+    def top_illust(self, mode: Literal["all", "r18"] = "all"):
         ...
 
     def bookmarks_add(self, illust_id: int | str, *, restrict: int = 0, comment: str = "",

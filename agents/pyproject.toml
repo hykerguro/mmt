@@ -24,3 +24,7 @@ api = []
 tg = [
     "telethon>=1.40.0",
 ]
+zodgame = [
+    "beautifulsoup4>=4.13.4",
+    "lxml>=6.0.0",
+]
