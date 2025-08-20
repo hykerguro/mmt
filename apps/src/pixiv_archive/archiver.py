@@ -118,10 +118,12 @@ class PixivFavArchiver:
         if "ugoira" in urls[0]:
             filepath = (folder / f"{illust_id}.gif")
             ugoira_meta = self.papi.ugoira_meta(illust_id)
+            logger.debug(f"下载ugoira {illust_id}")
             self.papi.download(ugoira_meta["originalSrc"], filepath, frames=ugoira_meta["frames"])
         else:
             for i, url in enumerate(urls):
                 filepath = (folder / f"{illust_id}_p{str(i).rjust(pwidth, '0')}.{url.rsplit('.')[-1]}")
+                logger.debug(f"下载图片 {i + 1}/{len(urls)}: {url} 到 {filepath}")
                 self.papi.download(url, filepath)
 
         # 保存meta

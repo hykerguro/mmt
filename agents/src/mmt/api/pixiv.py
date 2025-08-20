@@ -6,7 +6,7 @@ from .framework import ApiBase, api
 Json: TypeAlias = dict[str, Any] | list[Any]
 
 
-@api("mmt.agents.pixiv", download={"timeout": 60})
+@api("mmt.agents.pixiv", download={"timeout": 120})
 class PixivApi(ApiBase):
     def resolve(self, url: str, method: Literal["GET", "POST"] = 'GET', data: Any = None) -> bytes:
         ...
