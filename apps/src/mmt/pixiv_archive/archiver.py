@@ -147,6 +147,7 @@ class PixivFavArchiver:
         if url is None:
             return
         requests.get(url)
+        logger.info("心跳已发送")
 
     def archive_fav(self, local_dir: str | None = None):
         if self.task_status.setdefault("fav", False):
