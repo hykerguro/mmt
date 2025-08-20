@@ -51,7 +51,7 @@ class PixivApi(ApiBase):
         """
         ...
 
-    def follow_latest_illust(self, p: int = 1, mode: Literal["all", "r18"] = "all"):
+    def follow_latest_illust(self, p: int = 1, mode: Literal["all", "r18"] = "all") -> Json | None:
         """
         用户关注的最新作品
         :param p: 页
@@ -60,7 +60,7 @@ class PixivApi(ApiBase):
         """
         ...
 
-    def top_illust(self, mode: Literal["all", "r18"] = "all"):
+    def top_illust(self, mode: Literal["all", "r18"] = "all") -> Json | None:
         ...
 
     def bookmarks_add(self, illust_id: int | str, *, restrict: int = 0, comment: str = "",
