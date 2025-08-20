@@ -229,6 +229,17 @@ def bookmarks_delete():
     return jsonify(api.bookmarks_delete(req["illust_id"]))
 
 
+@app.route('/health_check', methods=['GET'])
+def health_check():
+    try:
+        n = len(list(IMAGE_FOLDER.iterdir()))
+    except IOError as e:
+        return jsonify({"message": f"list local files error: {e}", "status": "error"}), 500
+    else:
+        if n == 0:
+            return jsonify({"message": "no local files found", "status": "error"}), 500
+    return jsonify({"message": "OK", "status": "ok"}), 200
+
 def run():
     app.run(host='0.0.0.0', port=HTTP_PORT)
 
