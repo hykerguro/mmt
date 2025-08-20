@@ -251,6 +251,7 @@ dependencies = [
     { name = "mmt-agents", extra = ["ntfy", "pixiv", "tg", "zodgame"] },
     { name = "mmt-apps", extra = ["pixiv-archive", "postgre", "rand-img"] },
     { name = "mmt-core" },
+    { name = "mmt-tools", extra = ["http-adapter", "monitor"] },
     { name = "pyyaml" },
     { name = "requests" },
 ]
@@ -260,6 +261,7 @@ requires-dist = [
     { name = "mmt-agents", extras = ["pixiv", "ntfy", "tg", "zodgame"], editable = "agents" },
     { name = "mmt-apps", extras = ["rand-img", "pixiv-archive", "postgre"], editable = "apps" },
     { name = "mmt-core", editable = "core" },
+    { name = "mmt-tools", extras = ["monitor", "http-adapter"], editable = "tools" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "requests", specifier = ">=2.32.4" },
 ]
@@ -353,6 +355,27 @@ requires-dist = [
 name = "mmt-tools"
 version = "0.1.0"
 source = { editable = "tools" }
+dependencies = [
+    { name = "loguru" },
+    { name = "mmt-core" },
+]
+
+[package.optional-dependencies]
+http-adapter = [
+    { name = "flask" },
+]
+monitor = [
+    { name = "peewee" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "flask", marker = "extra == 'http-adapter'", specifier = ">=3.1.2" },
+    { name = "loguru", specifier = ">=0.7.3" },
+    { name = "mmt-core", editable = "core" },
+    { name = "peewee", marker = "extra == 'monitor'", specifier = ">=3.18.2" },
+]
+provides-extras = ["http-adapter", "monitor"]
 
 [[package]]
 name = "peewee"

@@ -6,6 +6,7 @@ dependencies = [
     "mmt-core",
     "mmt-agents[pixiv, ntfy, tg, zodgame]",
     "mmt-apps[rand-img, pixiv-archive, postgre]",
+    "mmt-tools[monitor, http_adapter]",
     "pyyaml>=6.0.2",
     "requests>=2.32.4",
 ]
@@ -23,3 +24,8 @@ members = [
     "apps",
     "tools",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["apps", "core", "agents", "tools"]
+exclude = ["assets*", "config*"]

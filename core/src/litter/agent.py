@@ -152,11 +152,11 @@ def request(channel: str, body, *, headers: dict[str, Any] | None = None, timeou
     if headers is None:
         headers = {}
     headers["litter-request-id"] = request_id
-    headers["litter-request-timeout"] = timeout
     headers["litter-response-queue"] = response_queue
+    headers.setdefault("litter-request-timeout", timeout)
     publish(channel, body, headers=headers)
 
-    result = _redis_client.brpop([response_queue], timeout=timeout)
+    result = _redis_client.brpop([response_queue], timeout=headers["litter-request-timeout"])
     if result is None:
         publish(f"{channel}:timeout", body, headers=headers)
         raise RequestTimeoutException()

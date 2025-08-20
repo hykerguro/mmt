@@ -4,4 +4,18 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "loguru>=0.7.3",
+    "mmt-core",
+]
+
+[project.optional-dependencies]
+http-adapter = [
+    "flask>=3.1.2",
+]
+monitor = [
+    "peewee>=3.18.2",
+]
+
+[tool.uv.sources]
+mmt-core = { workspace = true }

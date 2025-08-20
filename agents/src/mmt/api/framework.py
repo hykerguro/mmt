@@ -40,6 +40,8 @@ class ApiBase:
             setattr(obj, name, cls._patch(method, ret=True, **extra_args))
         return obj
 
+    def health_check(self) -> tuple[bool, str]:
+        return True, "OK"
 
 def api(app_name: str, **kwargs):
     def _inner(cls):
