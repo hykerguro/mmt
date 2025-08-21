@@ -1,4 +1,5 @@
 import io
+import json
 import re
 import zipfile
 from pathlib import Path
@@ -20,12 +21,14 @@ class PixivWebAPIException(Exception):
     pass
 
 
-@agent("mmt.agent.pixiv",
-       init_args=(FromConfig("pixiv_webapi/php_session_id"), FromConfig("pixiv_webapi/csrf_token"))
-       )
+@agent(
+    "mmt.agent.pixiv",
+    init_args=(FromConfig("pixiv_webapi/php_session_id"), FromConfig("pixiv_webapi/csrf_token")),
+    init_kwargs=dict(debug=FromConfig("pixiv_webapi/debug"), dump_path=FromConfig("pixiv_webapi/dump_path")),
+)
 class PixivWebAPI(PixivApi):
     def __init__(self, php_session_id: str, csrf_token: str, lang: str = "zh", proxies=None, *,
-                 min_interval: float = 0.5):
+                 min_interval: float = 0.5, debug: bool = False, dump_path: Path = Path(".")):
         self.lang = lang
         self.base_url = "https://www.pixiv.net/ajax"
         self.session = requests.Session()
@@ -40,6 +43,12 @@ class PixivWebAPI(PixivApi):
             self.session.proxies.update(proxies)
         self.min_interval = min_interval
         self._last_request_time = 0.
+        self.debug = debug
+        self.dump_path = Path(dump_path)
+
+    def health_check(self) -> tuple[bool, str]:
+        result = self.user_info()
+        return result is not None, result["name"]
 
     def resolve(self, url: str, method: Literal["GET", "POST"] = 'GET', data: Any = None) -> bytes:
         return self.session.request(method=method, url=url, data=data,
@@ -69,6 +78,10 @@ class PixivWebAPI(PixivApi):
             ret_data = response.json()
             if ret_data["error"]:
                 raise PixivWebAPIException(f"{method} {endpoint}: {ret_data}")
+            if self.debug:
+                self.dump_path.mkdir(parents=True, exist_ok=True)
+                (self.dump_path / f"{endpoint.replace('/', '_')}.json").write_text(
+                    json.dumps(ret_data, indent=4, ensure_ascii=False))
             return ret_data["body"]
         except requests.exceptions.RequestException as e:
             logger.error(f"请求失败: {e}")
