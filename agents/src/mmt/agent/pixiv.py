@@ -24,7 +24,8 @@ class PixivWebAPIException(Exception):
 @agent(
     "mmt.agent.pixiv",
     init_args=(FromConfig("pixiv_webapi/php_session_id"), FromConfig("pixiv_webapi/csrf_token")),
-    init_kwargs=dict(debug=FromConfig("pixiv_webapi/debug"), dump_path=FromConfig("pixiv_webapi/dump_path")),
+    init_kwargs=dict(debug=FromConfig("pixiv_webapi/debug", False),
+                     dump_path=FromConfig("pixiv_webapi/dump_path", None)),
 )
 class PixivWebAPI(PixivApi):
     def __init__(self, php_session_id: str, csrf_token: str, lang: str = "zh", proxies=None, *,
@@ -44,7 +45,7 @@ class PixivWebAPI(PixivApi):
         self.min_interval = min_interval
         self._last_request_time = 0.
         self.debug = debug
-        self.dump_path = Path(dump_path)
+        self.dump_path = None if dump_path is None else Path(dump_path)
 
     def health_check(self) -> tuple[bool, str]:
         result = self.user_info()

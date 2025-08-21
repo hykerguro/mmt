@@ -36,7 +36,7 @@ def parse_datetime(s: str) -> datetime:
 @agent(
     "mmt.agent.zodgame",
     init_args=(FromConfig("zodgame/cookies"),),
-    init_kwargs=dict(debug=FromConfig("zodgame/debug"), dump_path=FromConfig("zodgame/dump_path"))
+    init_kwargs=dict(debug=FromConfig("zodgame/debug", False), dump_path=FromConfig("zodgame/dump_path", None))
 )
 class ZodgameAgent(ZodgameApi):
     base_url = 'https://zodgame.xyz'
@@ -56,7 +56,7 @@ class ZodgameAgent(ZodgameApi):
             logger.debug(f"proxy: {self.session.proxies}")
 
         self.debug = debug
-        self.dump_path = Path(dump_path)
+        self.dump_path = None if dump_path is None else Path(dump_path)
         if self.debug:
             logger.info(f"debug mode: on, dump path: {self.dump_path}")
 
