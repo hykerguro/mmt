@@ -6,7 +6,8 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "loguru>=0.7.3",
-    "mmt-core >= 0.1.0"
+    "mmt-core >= 0.1.0",
+    "pathvalidate>=3.3.1",
 ]
 
 [tool.uv.sources]
