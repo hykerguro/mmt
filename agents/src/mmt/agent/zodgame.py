@@ -65,7 +65,7 @@ class ZodgameAgent(ZodgameApi):
             url = self.base_url + "/" + url.lstrip('/')
         kwargs.setdefault("allow_redirects", True)
         logger.debug(f">>> {method.upper()} {url}")
-        resp = self.session.request(method, url, *args, **kwargs)
+        resp = self.session.request(method, url, *args, verify=False, **kwargs)
         logger.debug(f"<<< {resp.status_code}")
         resp.raise_for_status()
         if url.startswith(self.base_url) and self.debug:
