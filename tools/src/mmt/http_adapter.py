@@ -1,7 +1,7 @@
 import json
 from typing import Any
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from loguru import logger
 
 import litter
@@ -36,9 +36,11 @@ def _request():
     try:
         resp = litter.request(channel, data, headers=headers)
     except litter.RequestTimeoutException:
-        return jsonify({}), 500
-    return jsonify(resp.json()), 200
-
+        return Response(), 500
+    if isinstance(resp.body, bytes):
+        return Response(resp.body), 200
+    else:
+        return jsonify(resp.json()), 200
 
 @app.route("/publish", methods=['POST', 'GET'])
 def _publish():
