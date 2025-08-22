@@ -56,6 +56,11 @@ def _publish():
     return "", 200
 
 
+@app.route("/health_check", methods=['GET'])
+def health_check():
+    return "OK", 200
+
+
 if __name__ == '__main__':
     litter.connect(app_name="http_adapter")
     app.run(**config.get("http_adapter/server", {"host": "0.0.0.0", "port": 8080}))
