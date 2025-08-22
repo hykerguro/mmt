@@ -48,8 +48,6 @@ class ZodgameAgent(ZodgameApi):
         self.session = Session()
         self.session.headers["User-Agent"] = \
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
-        if cookies is not None:
-            self.authorize(cookies)
 
         if proxies is not None:
             self.session.proxies = proxies
@@ -59,6 +57,9 @@ class ZodgameAgent(ZodgameApi):
         self.dump_path = None if dump_path is None else Path(dump_path)
         if self.debug:
             logger.info(f"debug mode: on, dump path: {self.dump_path}")
+
+        if cookies is not None:
+            self.authorize(cookies)
 
     def _request(self, method: str, url: str, *args, **kwargs) -> bytes:
         if not url.startswith('http'):
@@ -75,6 +76,14 @@ class ZodgameAgent(ZodgameApi):
             logger.debug(f"Response dumped to {tp}")
         return resp.content
 
+    def _who_am_i(self) -> tuple[str, str]:
+        resp = self.http_get(self.base_url).decode("utf-8")
+        soup = BeautifulSoup(resp, "lxml")
+        info_a = soup.select_one("strong.vwmy>a")
+        self.name = info_a.text.strip()
+        self.uid = info_a["href"].strip().rsplit("=", 1)[-1]
+        return self.uid, self.name
+
     def http_get(self, url, **kwargs) -> bytes:
         return self._request(method="GET", url=url, **kwargs)
 
@@ -88,10 +97,11 @@ class ZodgameAgent(ZodgameApi):
             self.session.cookies.set(k, v)
             if k == "qhMq_2132_st_t":
                 self.uid, _ = v.split("%", maxsplit=1)
+        self._who_am_i()
 
     def health_check(self) -> tuple[bool, str]:
-        info = self.home_space()
-        return info is not None, info["name"]
+        self._who_am_i()
+        return True, self.name
 
     def get_forum_threads(self, thread_url: str) -> list[dict]:
         assert thread_url.startswith(f"{self.base_url}/forum.php")
