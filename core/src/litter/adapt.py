@@ -62,7 +62,7 @@ class FromConfig:
 
 
 def agent(
-        app_name: str, *, init_args: tuple | None = None, init_kwargs: dict[str, Any] | None = None,
+        app_name: str, *, init_args: tuple | None = None, init_kwargs: dict[str, Any] | FromConfig | None = None,
         init_config: bool = True, log_config_key=None, redis_credentials: dict[str, Any] | None = None,
         executor_workers: int = 4
 ):
@@ -88,6 +88,9 @@ def agent(
                 (arg() if isinstance(arg, FromConfig) else arg)
                 for arg in init_args
             ] if init_args else []
+            if isinstance(init_kwargs, FromConfig):
+                init_kwargs = init_kwargs()
+                assert isinstance(init_kwargs, dict)
             init_kwargs = {
                 k: (arg() if isinstance(arg, FromConfig) else arg)
                 for k, arg in init_kwargs.items()
