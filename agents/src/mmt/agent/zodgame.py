@@ -35,23 +35,29 @@ def parse_datetime(s: str) -> datetime:
 
 @agent(
     "mmt.agent.zodgame",
-    init_args=(FromConfig("zodgame/cookies"),),
-    init_kwargs=dict(debug=FromConfig("zodgame/debug", False), dump_path=FromConfig("zodgame/dump_path", None))
+    init_args=(
+            FromConfig("zodgame/cookies"),
+    ),
+    init_kwargs=dict(
+        debug=FromConfig("zodgame/debug", False),
+        dump_path=FromConfig("zodgame/dump_path", None),
+        request_param=FromConfig("zodgame/request_param", None),
+    )
 )
 class ZodgameAgent(ZodgameApi):
     base_url = 'https://zodgame.xyz'
     uid: str
     name: str
 
-    def __init__(self, cookies: str | None = None, proxies: dict[str, str] | None = None,
-                 *, debug: bool = False, dump_path: Path = Path('.')) -> None:
+    def __init__(self, cookies: str | None = None,
+                 *, debug: bool = False, dump_path: Path = Path('.'),
+                 request_param: dict[str, Any] | None = None) -> None:
         self.session = Session()
         self.session.headers["User-Agent"] = \
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
-
-        if proxies is not None:
-            self.session.proxies = proxies
-            logger.debug(f"proxy: {self.session.proxies}")
+        self.request_param = request_param or {}
+        if self.request_param:
+            logger.debug(f"Custom request param: {self.request_param}")
 
         self.debug = debug
         self.dump_path = None if dump_path is None else Path(dump_path)
@@ -61,12 +67,14 @@ class ZodgameAgent(ZodgameApi):
         if cookies is not None:
             self.authorize(cookies)
 
-    def _request(self, method: str, url: str, *args, **kwargs) -> bytes:
+    def _request(self, method: str, url: str, **kwargs) -> bytes:
         if not url.startswith('http'):
             url = self.base_url + "/" + url.lstrip('/')
         kwargs.setdefault("allow_redirects", True)
         logger.debug(f">>> {method.upper()} {url}")
-        resp = self.session.request(method, url, *args, verify=False, **kwargs)
+        _kwargs = dict(self.request_param)
+        _kwargs.update(kwargs)
+        resp = self.session.request(method, url, **_kwargs)
         logger.debug(f"<<< {resp.status_code}")
         resp.raise_for_status()
         if url.startswith(self.base_url) and self.debug:
@@ -98,6 +106,7 @@ class ZodgameAgent(ZodgameApi):
             if k == "qhMq_2132_st_t":
                 self.uid, _ = v.split("%", maxsplit=1)
         self._who_am_i()
+        logger.info(f"login as {self.name}({self.uid})")
 
     def health_check(self) -> tuple[bool, str]:
         self._who_am_i()
