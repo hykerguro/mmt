@@ -113,6 +113,7 @@ class ZodgameAgent(ZodgameApi):
         return True, self.name
 
     def get_forum_threads(self, thread_url: str) -> list[dict]:
+        # todo: datetime
         assert thread_url.startswith(f"{self.base_url}/forum.php")
         resp = self.http_get(thread_url)
         soup = BeautifulSoup(resp, "lxml")
