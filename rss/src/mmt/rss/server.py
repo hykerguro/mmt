@@ -43,7 +43,7 @@ def json_feed(channel: str):
     return Response(resp_text, mimetype="application/json")
 
 
-@app.route("health_check", methods=["GET"])
+@app.route("/health_check", methods=["GET"])
 def health_check():
     return Response(status=200)
 
