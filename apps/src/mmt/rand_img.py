@@ -12,10 +12,10 @@ from typing import Any
 
 from flask import Flask, jsonify, send_file, request
 from loguru import logger
-from mmt.api.pixiv import PixivApi
 
 import litter
 from confctl import config, util
+from mmt.api.pixiv import PixivApi
 
 APP_NAME = "random_image_server"
 
@@ -226,7 +226,7 @@ def bookmarks_add():
 @app.route('/bookmarks_delete', methods=['POST'])
 def bookmarks_delete():
     req = request.json
-    return jsonify(api.bookmarks_delete(req["illust_id"]))
+    return jsonify(api.bookmarks_delete(illust_id=req["illust_id"]))
 
 
 @app.route('/health_check', methods=['GET'])

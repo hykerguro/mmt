@@ -10,8 +10,7 @@ from typing import Callable, Collection, Any, Iterator
 import redis
 from loguru import logger
 
-from . import RemoteFunctionRaisedException
-from .model import Message, serialize, RequestTimeoutException, Response
+from litter.model import Message, serialize, RequestTimeoutException, Response, RemoteFunctionRaisedException
 
 __all__ = [
     "connect",
@@ -84,9 +83,7 @@ def connect(host: str | None = None, port: int | str | None = None, password: st
         redis_credentials.pop("password", None)
         logger.info(
             f"Redis connected {redis_credentials} with name {get_appname()}")
-    else:
-        # logger.warning(f"Redis had already connected: {host=}, {port=}")
-        pass
+
     atexit.register(disconnect)
 
 
@@ -96,16 +93,6 @@ def disconnect() -> None:
         _redis_client.close()
         _redis_client = None
         logger.info("Redis disconnected")
-    # if _sub_entity is not None:
-    #     _sub_entity.unsubscribe()
-    #     _sub_entity.close()
-    #     _sub_entity = None
-    # if _redis_client is not None:
-    #     _redis_client.close()
-    #     _redis_client = None
-
-    # else:
-    # logger.warning("Redis client either not inited or already disconnected")
 
 
 def subscribe(pattern: str | Collection[str], func: Callable[[Message], Message | None] | None = None):

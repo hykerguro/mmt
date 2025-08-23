@@ -33,3 +33,8 @@ members = [
 where = ["."]
 include = ["apps", "core", "agents", "tools"]
 exclude = ["assets*", "config*"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]

@@ -4,8 +4,8 @@ from typing import Callable, Any
 from loguru import logger
 
 from confctl import util, config
-from .agent import subscribe, listen_bg, listen
-from .model import Message
+from litter.agent import subscribe, listen_bg, listen
+from litter.model import Message
 
 __all__ = [
     "adapt",
@@ -18,11 +18,6 @@ def _adapt_method(name: str, method: Callable) -> Callable:
     def _inner(message: Message):
         kwargs = message.body
         args = kwargs.pop("_", [])
-        param_expr = ', '.join([
-            *map(str, args),
-            *(f'{k}={str(v)}' for k, v in kwargs.items()),
-        ])
-        logger.debug(f"Invoke {name}({param_expr})")
         return method(*args, **kwargs)
 
     return _inner

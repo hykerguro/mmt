@@ -72,17 +72,17 @@ class PixivWebAPI(PixivApi):
                 kwargs["params"]["lang"] = self.lang
 
         try:
-            logger.debug(f"{method} {url} {kwargs}")
+            logger.debug(f"{method:>4} >>> {url} {kwargs}")
             response = self.session.request(method, url, **kwargs)
             # response.raise_for_status()
-            logger.debug(f"响应: {response.status_code} {response.text[:100]}...")
+            logger.debug(f"RESP <<< {response.status_code} {response.text[:100]}...")
             ret_data = response.json()
             if ret_data["error"]:
                 raise PixivWebAPIException(f"{method} {endpoint}: {ret_data}")
             if self.debug:
                 self.dump_path.mkdir(parents=True, exist_ok=True)
                 (self.dump_path / f"{endpoint.replace('/', '_')}.json").write_text(
-                    json.dumps(ret_data, indent=4, ensure_ascii=False))
+                    json.dumps(ret_data, indent=4, ensure_ascii=False), encoding="utf8")
             return ret_data["body"]
         except requests.exceptions.RequestException as e:
             logger.error(f"请求失败: {e}")
