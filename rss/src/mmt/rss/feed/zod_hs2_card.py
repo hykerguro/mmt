@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 from loguru import logger
 
 from mmt.api.zodgame import ZodgameApi
-from mmt.rss.feed import FeedSupplier, feed_supplier
+from mmt.rss.feed import FeedSupplierBase, feed_supplier
 from mmt.rss.model import Feed, Item
 
 TZ = ZoneInfo("Asia/Shanghai")
@@ -15,7 +15,7 @@ __all__ = [
 
 
 @feed_supplier("zod_hs2_card")
-class ZodHs2CardFeedSupplier(FeedSupplier):
+class ZodHs2CardFeedSupplier(FeedSupplierBase):
     channel: str
 
     def __init__(self):

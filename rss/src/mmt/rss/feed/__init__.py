@@ -8,13 +8,13 @@ from litter.adapt import FromConfig, config
 from mmt.rss.model import Feed
 
 __all__ = (
-    "FeedSupplier",
+    "FeedSupplierBase",
     "feed_supplier",
     "FEEDS"
 )
 
 
-class FeedSupplier(ABC):
+class FeedSupplierBase(ABC):
     channel: str
     server_url: str
 
