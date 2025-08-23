@@ -35,8 +35,8 @@ def _request():
     _logit(channel, headers, data)
     try:
         resp = litter.request(channel, data, headers=headers)
-    except litter.RequestTimeoutException:
-        return Response(), 500
+    except Exception as e:
+        return Response(str(e)), 500
     if isinstance(resp.body, bytes):
         return Response(resp.body), 200
     else:

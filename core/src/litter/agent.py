@@ -10,6 +10,7 @@ from typing import Callable, Collection, Any, Iterator
 import redis
 from loguru import logger
 
+from . import RemoteFunctionRaisedException
 from .model import Message, serialize, RequestTimeoutException, Response
 
 __all__ = [
@@ -159,9 +160,12 @@ def request(channel: str, body, *, headers: dict[str, Any] | None = None, timeou
     result = _redis_client.brpop([response_queue], timeout=headers["litter-request-timeout"])
     if result is None:
         publish(f"{channel}:timeout", body, headers=headers)
-        raise RequestTimeoutException()
+        raise RequestTimeoutException(f"Request {channel} timed out. ({timeout}s)")
 
-    return Response.from_redis_response(result[1])
+    resp = Response.from_redis_response(result[1])
+    if resp.exception_type is not None:
+        raise RemoteFunctionRaisedException(resp)
+    return resp
 
 
 def iter_request(channel: str, body, *, headers: dict[str, Any] | None = None, timeout: int = 5,
@@ -221,7 +225,7 @@ def handler_callback(message: Message):
             traceback.print_exc()
             if "litter-request-id" in message.headers:
                 headers = {
-                    "litter-exception-type": str(type(e)),
+                    "litter-exception-type": f"{e.__class__.__module__}.{e.__class__.__name__}",
                     "litter-exception-message": str(e)
                 }
                 resp = _build_response(message, None, headers=headers)

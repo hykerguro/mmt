@@ -35,37 +35,35 @@ class RemoteFunctionRaisedException(LitterException):
         super().__init__(resp.headers['litter-exception-type'] + ": " + resp.headers['litter-exception-message'])
 
 
-class LitterJsonEncoder(json.JSONEncoder):
-    DTM_PREFIX = "<\u200Blt-p:dtm>:"
-    BASE64_PREFIX = "<\u200Blt-p:b64>:"
+DTM_PREFIX = "<\u200Blt-p:dtm>:"
+BASE64_PREFIX = "<\u200Blt-p:b64>:"
 
-    def default(self, o):
+
+def serialize(obj) -> str:
+    def _default(o):
         if isinstance(o, datetime):
-            return self.DTM_PREFIX + o.isoformat()
+            return DTM_PREFIX + o.isoformat()
         elif isinstance(o, bytes):
-            return self.BASE64_PREFIX + base64.b64encode(o).decode()
+            return BASE64_PREFIX + base64.b64encode(o).decode()
         elif isinstance(o, PurePath):
             return str(o)
         elif isinstance(o, Exception):
             return f'{type(o)}: {o}'
-        return super().default(o)
+        return str(o)
 
-
-def serialize(obj) -> str:
-    return json.dumps(obj, cls=LitterJsonEncoder, ensure_ascii=False)
-
-
-def _obj_hook(d):
-    for k, v in d.items():
-        if isinstance(v, str):
-            if v.startswith(LitterJsonEncoder.BASE64_PREFIX):
-                d[k] = base64.b64decode(v[len(LitterJsonEncoder.BASE64_PREFIX):])
-            elif v.startswith(LitterJsonEncoder.DTM_PREFIX):
-                d[k] = datetime.fromisoformat(v[len(LitterJsonEncoder.DTM_PREFIX):]).astimezone(tz)
-    return d
+    return json.dumps(obj, default=_default, ensure_ascii=False)
 
 
 def deserialize(data, **kwargs) -> Json:
+    def _obj_hook(d):
+        for k, v in d.items():
+            if isinstance(v, str):
+                if v.startswith(BASE64_PREFIX):
+                    d[k] = base64.b64decode(v[len(BASE64_PREFIX):])
+                elif v.startswith(DTM_PREFIX):
+                    d[k] = datetime.fromisoformat(v[len(DTM_PREFIX):]).astimezone(tz)
+        return d
+
     if isinstance(data, str):
         return json.loads(data, object_hook=_obj_hook, **kwargs)
     else:

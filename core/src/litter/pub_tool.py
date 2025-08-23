@@ -92,7 +92,7 @@ def loop():
                 resp = litter.request(channel, body)
                 print("<<<", prettify_resp(resp))
                 record["response"] = resp
-        except Exception as e:
+        except litter.RemoteFunctionRaisedException as e:
             record["exception"] = format_exc()
             print("ERR", record["exception"])
         finally:
