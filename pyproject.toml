@@ -7,8 +7,10 @@ dependencies = [
     "mmt-agents[pixiv, ntfy, tg, zodgame]",
     "mmt-apps[rand-img, pixiv-archive, postgre]",
     "mmt-tools[monitor, http_adapter]",
+    "mmt-rss",
     "pyyaml>=6.0.2",
     "requests>=2.32.4",
+    "tzdata>=2025.2",
 ]
 
 [tool.uv.sources]
@@ -16,6 +18,7 @@ mmt-core = { workspace = true }
 mmt-agents = { workspace = true }
 mmt-apps = { workspace = true }
 mmt-tools = { workspace = true }
+mmt-rss = { workspace = true }
 
 [tool.uv.workspace]
 members = [
@@ -23,6 +26,7 @@ members = [
     "core",
     "apps",
     "tools",
+    "rss",
 ]
 
 [tool.setuptools.packages.find]

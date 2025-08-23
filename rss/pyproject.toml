@@ -1,0 +1,14 @@
+[project]
+name = "mmt-rss"
+version = "0.1.0"
+description = "mmt rss server"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "flask>=3.1.2",
+    "loguru>=0.7.3",
+    "mmt-core >= 0.1.0",
+]
+
+[tool.uv.sources]
+mmt-core = { workspace = true }

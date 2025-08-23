@@ -167,3 +167,4 @@ config/
 **/playground.*
 *.sqlite
 *.sqlite3
+.run/
