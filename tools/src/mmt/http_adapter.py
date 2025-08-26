@@ -1,4 +1,5 @@
 import json
+import time
 from typing import Any
 
 from flask import Flask, request, jsonify, Response
@@ -22,7 +23,7 @@ def _parse_request(_req) -> tuple[str, dict[str, str], dict[str, Any]]:
 
 
 def _logit(channel, headers, data):
-    logger.debug("request {}\n\n{}\n\n{}".format(
+    logger.debug("<<< {}\n\n{}\n\n{}".format(
         channel,
         "\n".join(f"{k}: {v}" for k, v in headers.items()),
         json.dumps(data, indent=2, ensure_ascii=False)
@@ -33,10 +34,13 @@ def _logit(channel, headers, data):
 def _request():
     channel, headers, data = _parse_request(request)
     _logit(channel, headers, data)
+    start = time.time()
     try:
         resp = litter.request(channel, data, headers=headers)
     except Exception as e:
+        logger.error(e)
         return Response(str(e)), 500
+    logger.debug(">>> {} in {}s".format(resp.body, time.time() - start))
     if isinstance(resp.body, bytes):
         return Response(resp.body), 200
     else:
