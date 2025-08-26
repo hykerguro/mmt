@@ -90,6 +90,7 @@ class ZodgameAgent(ZodgameApi):
         info_a = soup.select_one("strong.vwmy>a")
         self.name = info_a.text.strip()
         self.uid = info_a["href"].strip().rsplit("=", 1)[-1]
+        logger.debug(f"Name: {self.name} UID: {self.uid}")
         return self.uid, self.name
 
     def http_get(self, url, **kwargs) -> bytes:
