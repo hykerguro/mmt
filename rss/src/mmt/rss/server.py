@@ -5,6 +5,7 @@ from flask import Flask, Response, request
 
 import litter
 from confctl import config, util
+from mmt.rss.adapter import jsonfeed_to_rss, jsonfeed_to_atom
 from mmt.rss.feed import FEEDS
 
 util.default_arg_config_loggers()
@@ -41,6 +42,24 @@ def json_feed(channel: str):
     feed = supplier.feed()
     resp_text = feed.json()
     return Response(resp_text, mimetype="application/json")
+
+
+@app.route("/rss/<channel>", methods=["GET"])
+def rss(channel: str):
+    supplier = FEEDS.get(channel, None)
+    if supplier is None:
+        return f"{channel} not found", 404
+    feed = supplier.feed()
+    return Response(jsonfeed_to_rss(feed.as_dict()), mimetype="application/rss+xml")
+
+
+@app.route("/atom/<channel>", methods=["GET"])
+def atom(channel: str):
+    supplier = FEEDS.get(channel, None)
+    if supplier is None:
+        return f"{channel} not found", 404
+    feed = supplier.feed()
+    return Response(jsonfeed_to_atom(feed.as_dict()), mimetype="application/atom+xml")
 
 
 @app.route("/health_check", methods=["GET"])
