@@ -61,7 +61,7 @@ def populate_bm_cache():
                 continue
             p = random.randint(0, len(pages) - 1)
             url = pages[p]["urls"]["original"]
-            image_data = api.download(url, None)
+            image_data = api.download(url)
         except litter.RequestTimeoutException:
             pass
         else:

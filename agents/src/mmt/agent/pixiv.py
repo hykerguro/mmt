@@ -3,9 +3,8 @@ import json
 import re
 import zipfile
 from pathlib import Path
-from tempfile import TemporaryFile
 from time import sleep, time
-from typing import TypeAlias, Any, Literal
+from typing import TypeAlias, Any, Literal, IO
 
 import requests
 from PIL import Image
@@ -117,10 +116,9 @@ class PixivWebAPI(PixivApi):
     def ugoira_meta(self, illust_id: int | str) -> Json | None:
         return self.get(f"illust/{illust_id}/ugoira_meta")
 
-    def download(self, url: str, path: str | Path | None, max_retries: int = 3, timeout: float = 10.,
-                 *, frames: list[dict[str, Any]] | None = None) -> bytes | bool | None:
+    def download(self, url: str, max_retries: int = 3, timeout: float = 10.) -> bytes:
         """
-        下载illust（支持ugoira）
+        下载illust到bytes
         :param url: URL路径
         :param path: 下载路径；为None时下载到内存从并将二进制数据返回；下载ugoira且下载路径以.gif结尾时，自动转换为gif动图
         :param max_retries: 最大尝试次数
@@ -128,45 +126,44 @@ class PixivWebAPI(PixivApi):
         :param frames: ugoira的帧率信息；可选，为None时会自动发起请求获取
         :return: 如果path为None，则返回下载的图片的二进制数据；否则返回下载是否成功
         """
-        if path is None:
-            file = TemporaryFile(mode="w+b")
-        else:
-            path = Path(path)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            file = open(path, "wb")
+        logger.info("wc")
+        o = self._get_img(url, timeout)
+        return None if o is None else o.getvalue()
 
+    def _get_img(self, url, timeout: float = 10., out: IO[bytes] | None = None) -> io.BytesIO | None:
+        """
+        下载img
+        """
         fail_reason = []
+        max_retries = 3
+        if out is None:
+            out = io.BytesIO()
+
+        successfully_downloaded = False
         for attempt in range(max_retries):
             try:
                 response = self.session.get(url, stream=True, timeout=timeout,
                                             headers={"Referer": "https://www.pixiv.net/"})
                 if response.status_code != 200:
-                    logger.error(f"图片 {url} 下载失败，状态码: {response.status_code}")
+                    logger.warning(f"图片 {url} 下载失败，状态码: {response.status_code}")
                     fail_reason.append(f"Status Code: {response.status_code}")
 
                 if (mat := re.match(r".+/(?P<iid>\d+)_ugoira.+\.zip$", url)) is not None:
                     iid = mat.group("iid")
                     zip_buffer = io.BytesIO(response.content)
-
-                    if path is None or path.suffix == ".gif":
-                        if frames is None:
-                            frames = self.ugoira_meta(iid)["frames"]
-                        logger.debug("开始转换ugoira为gif")
-                        with zipfile.ZipFile(zip_buffer, 'r') as zip_file:
-                            images = [Image.open(io.BytesIO(zip_file.read(frame["file"]))) for frame in frames]
-                            durations = [frame["delay"] for frame in frames]
-                            images[0].save(file, save_all=True, append_images=images[1:], duration=durations, loop=0)
-                    else:
-                        file.write(zip_buffer.getvalue())
+                    frames = self.ugoira_meta(iid)["frames"]
+                    logger.debug("开始转换ugoira为gif")
+                    with zipfile.ZipFile(zip_buffer, 'r') as zip_file:
+                        images = [Image.open(io.BytesIO(zip_file.read(frame["file"]))) for frame in frames]
+                        durations = [frame["delay"] for frame in frames]
+                        images[0].save(out, save_all=True, append_images=images[1:], duration=durations, loop=0)
                 else:
                     chunk_size = 1024 * 1024  # 1 MB
                     for chunk in response.iter_content(chunk_size=chunk_size):
                         if chunk:
-                            file.write(chunk)
-
-                logger.info(f"图片 {url} 已成功下载并保存为 {path}")
+                            out.write(chunk)
+                successfully_downloaded = True
                 break
-
             except requests.exceptions.RequestException as e:
                 logger.warning(f"图片 {url} 下载出错：{e}，重试次数: {attempt + 1}/{max_retries}")
                 fail_reason.append(f"Error: {e}")
@@ -174,17 +171,26 @@ class PixivWebAPI(PixivApi):
                     sleep(timeout)
                 else:
                     logger.error(f"图片 {url} 重试已超过最大次数，下载失败")
-                return None if path is None else False
 
-        if path is None:
-            file.seek(0)
-            res = file.read()
-            file.close()
-            return res
+        return out if successfully_downloaded else None
 
-        if file is not None:
-            file.close()
+    def save_img(self, url: str, path: str | Path, max_retries: int = 3, timeout: float = 10.) -> bool:
+        """
+        下载illust到文件
+        :param url: URL路径
+        :param path: 下载路径；下载ugoira且下载路径以.gif结尾时，自动转换为gif动图
+        :param max_retries: 最大尝试次数
+        :param timeout: 超时时间
+        :return:
+        """
+        o = self._get_img(url, timeout)
+        if o is None:
+            return False
 
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("wb") as f:
+            f.write(o.getvalue())
         return True
 
     def follow_latest_illust(self, p: int = 1, mode: Literal["all", "r18"] = "all"):

@@ -38,8 +38,7 @@ class PixivApi(ApiBase):
     def ugoira_meta(self, illust_id: int | str) -> Json | None:
         ...
 
-    def download(self, url: str, path: str | Path | None, max_retries: int = 3, timeout: float = 10.,
-                 *, frames: list[dict[str, Any]] | None = None) -> bytes | bool | None:
+    def download(self, url: str, max_retries: int = 3, timeout: float = 10.) -> bytes | None:
         """
         下载illust（支持ugoira）
         :param url: URL路径
@@ -47,7 +46,18 @@ class PixivApi(ApiBase):
         :param max_retries: 最大尝试次数
         :param timeout: 超时时间
         :param frames: ugoira的帧率信息；可选，为None时会自动发起请求获取
-        :return: 如果path为None，则返回下载的图片的二进制数据；否则返回下载是否成功
+        :return bytes | None，失败时返回None
+        """
+        ...
+
+    def save_img(self, url: str, path: str | Path | None, max_retries: int = 3, timeout: float = 10.) -> None:
+        """
+        下载illust到文件
+        :param url:
+        :param path:
+        :param max_retries:
+        :param timeout:
+        :return:
         """
         ...
 
