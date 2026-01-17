@@ -126,7 +126,6 @@ class PixivWebAPI(PixivApi):
         :param frames: ugoira的帧率信息；可选，为None时会自动发起请求获取
         :return: 如果path为None，则返回下载的图片的二进制数据；否则返回下载是否成功
         """
-        logger.info("wc")
         o = self._get_img(url, timeout)
         return None if o is None else o.getvalue()
 
