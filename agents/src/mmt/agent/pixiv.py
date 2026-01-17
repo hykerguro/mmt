@@ -130,6 +130,7 @@ class PixivWebAPI(PixivApi):
         return None if o is None else o.getvalue()
 
     def _get_img(self, url, timeout: float = 10., out: IO[bytes] | None = None) -> io.BytesIO | None:
+        logger.info("下载 " + url)
         """
         下载img
         """
@@ -155,7 +156,8 @@ class PixivWebAPI(PixivApi):
                     with zipfile.ZipFile(zip_buffer, 'r') as zip_file:
                         images = [Image.open(io.BytesIO(zip_file.read(frame["file"]))) for frame in frames]
                         durations = [frame["delay"] for frame in frames]
-                        images[0].save(out, save_all=True, append_images=images[1:], duration=durations, loop=0)
+                        images[0].save(out, format="gif", save_all=True, append_images=images[1:], duration=durations,
+                                       loop=0)
                 else:
                     chunk_size = 1024 * 1024  # 1 MB
                     for chunk in response.iter_content(chunk_size=chunk_size):
